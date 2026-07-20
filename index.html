@@ -6,47 +6,100 @@
     <title>Локальный Чат</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <style>
+        /* Плавное выплывание сообщений */
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(12px) scale(0.98);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        .animate-slide-up {
+            animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* Плавное появление блока */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    </style>
 </head>
-<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center p-4">
+<body class="bg-slate-950 text-white min-h-screen flex items-center justify-center p-4 font-sans relative overflow-hidden">
 
-    <div class="w-full max-w-md bg-slate-800 p-6 rounded-2xl shadow-xl border border-slate-700">
+    <video autoplay loop muted playsinline class="absolute inset-0 w-full h-full object-cover z-0">
+        <source src="2667.mp4" type="video/mp4">
+    </video>
+
+    <div class="absolute inset-0 bg-slate-950/60 backdrop-blur-xl z-0"></div>
+
+    <div class="w-full max-w-md bg-slate-900/50 backdrop-blur-2xl p-6 rounded-3xl shadow-2xl border border-white/10 z-10 animate-fade-in relative">
         
-        <div id="login-block" class="space-y-4">
-            <h1 class="text-2xl font-bold text-center text-blue-400">Сетевой Чат</h1>
-            <p class="text-xs text-slate-400 text-center">Введите одинаковый номер комнаты с другом, чтобы подключиться друг к другу.</p>
+        <div id="login-block" class="space-y-5">
+            <div class="text-center space-y-1">
+                <h1 class="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-300">
+                    Сетевой Чат
+                </h1>
+                <p class="text-xs text-slate-300">Введи одинаковый номер комнаты с другом.</p>
+            </div>
             
-            <div>
-                <label class="text-xs text-slate-300">Ваше имя:</label>
-                <input type="text" id="username" placeholder="Например: Иван" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500 mt-1">
-            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-xs font-medium text-slate-300 ml-1">Твоё имя</label>
+                    <input type="text" id="username" placeholder="Например: Иван" 
+                        class="w-full bg-slate-950/60 border border-white/10 rounded-2xl p-3.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all mt-1">
+                </div>
 
-            <div>
-                <label class="text-xs text-slate-300">Имя или номер комнаты (любые цифры):</label>
-                <input type="text" id="room" placeholder="Например: 777" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500 mt-1">
-            </div>
+                <div>
+                    <label class="text-xs font-medium text-slate-300 ml-1">Номер или название комнаты</label>
+                    <input type="text" id="room" placeholder="Например: 777" 
+                        class="w-full bg-slate-950/60 border border-white/10 rounded-2xl p-3.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all mt-1">
+                </div>
 
-            <button id="join-btn" class="w-full bg-blue-600 hover:bg-blue-500 font-bold p-3 rounded-xl transition">Войти</button>
+                <button id="join-btn" 
+                    class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.98] font-semibold p-3.5 rounded-2xl transition shadow-lg shadow-blue-500/20 text-sm">
+                    Войти в комнату
+                </button>
+            </div>
         </div>
 
-        <div id="chat-block" class="hidden space-y-4">
-            <div class="flex justify-between items-center border-b border-slate-700 pb-3">
-                <div>
-                    <h2 class="font-bold text-blue-400" id="room-display">Комната: -</h2>
-                    <p class="text-xs text-slate-400" id="user-display">Вы: -</p>
+        <div id="chat-block" class="hidden space-y-4 animate-fade-in">
+            <div class="flex justify-between items-center border-b border-white/10 pb-3">
+                <div class="flex items-center gap-3">
+                    <div id="my-avatar" class="w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-sm shadow-md">
+                        ?
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-sm text-white" id="room-display">Комната: -</h2>
+                        <p class="text-xs text-slate-300" id="user-display">Вы: -</p>
+                    </div>
                 </div>
-                <span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-md">В сети</span>
+                <span class="text-[11px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-full font-medium flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> В сети
+                </span>
             </div>
 
             <div>
-                <p class="text-xs text-slate-400 mb-1">Устройства в этой комнате:</p>
-                <div id="users-list" class="flex flex-wrap gap-1"></div>
+                <p class="text-[11px] text-slate-300 mb-1.5 font-medium">Участники рядом:</p>
+                <div id="users-list" class="flex flex-wrap gap-1.5"></div>
             </div>
 
-            <div id="messages" class="h-64 bg-slate-900 rounded-xl p-3 overflow-y-auto space-y-2 border border-slate-700 text-sm"></div>
+            <div id="messages" class="h-72 bg-slate-950/40 rounded-2xl p-3 overflow-y-auto space-y-2 border border-white/5 text-sm scroll-smooth"></div>
 
             <form id="msg-form" class="flex gap-2">
-                <input type="text" id="msg-input" placeholder="Сообщение..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500">
-                <button type="submit" class="bg-blue-600 hover:bg-blue-500 font-bold px-4 rounded-xl">></button>
+                <input type="text" id="msg-input" placeholder="Напиши сообщение..." autocomplete="off" 
+                    class="flex-1 bg-slate-950/60 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all">
+                <button type="submit" 
+                    class="bg-blue-600 hover:bg-blue-500 active:scale-95 font-bold px-4 rounded-2xl transition shadow-md shadow-blue-600/20 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                </button>
             </form>
         </div>
 
@@ -56,16 +109,38 @@
         let client, myName, myRoom, myId = Math.random().toString(36).substring(7);
         let users = new Map();
 
+        // Палитра цветов для аватарок
+        const avatarColors = [
+            'bg-red-500 text-white', 'bg-orange-500 text-white', 'bg-amber-500 text-white',
+            'bg-emerald-500 text-white', 'bg-teal-500 text-white', 'bg-cyan-500 text-white',
+            'bg-blue-500 text-white', 'bg-indigo-500 text-white', 'bg-violet-500 text-white',
+            'bg-purple-500 text-white', 'bg-pink-500 text-white', 'bg-rose-500 text-white'
+        ];
+
+        function getColorForName(name) {
+            let hash = 0;
+            for (let i = 0; i < name.length; i++) {
+                hash = name.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const index = Math.abs(hash) % avatarColors.length;
+            return avatarColors[index];
+        }
+
         document.getElementById('join-btn').onclick = () => {
             myName = document.getElementById('username').value.trim();
             myRoom = document.getElementById('room').value.trim();
 
-            if (!myName || !myRoom) return alert('Заполните все поля!');
+            if (!myName || !myRoom) return alert('Заполни имя и номер комнаты!');
 
             document.getElementById('login-block').classList.add('hidden');
             document.getElementById('chat-block').classList.remove('hidden');
             document.getElementById('room-display').textContent = 'Комната: ' + myRoom;
             document.getElementById('user-display').textContent = 'Вы: ' + myName;
+
+            // Настройка личной аватарки
+            const myAvatar = document.getElementById('my-avatar');
+            myAvatar.textContent = myName.charAt(0).toUpperCase();
+            myAvatar.className = `w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-base shadow-lg ${getColorForName(myName)}`;
 
             // Подключение
             client = mqtt.connect('wss://broker.hivemq.com:8884/mqtt');
@@ -73,7 +148,7 @@
             client.on('connect', () => {
                 client.subscribe('my_custom_room_' + myRoom);
                 
-                // Каждые 2 секунды отправляем сигнал "Я тут"
+                // Сигнал присутствия каждые 2 секунды
                 setInterval(() => {
                     client.publish('my_custom_room_' + myRoom, JSON.stringify({
                         type: 'ping', id: myId, name: myName
@@ -96,7 +171,7 @@
             });
         };
 
-        // Отправка текста
+        // Отправка сообщения
         document.getElementById('msg-form').onsubmit = (e) => {
             e.preventDefault();
             let input = document.getElementById('msg-input');
@@ -107,15 +182,34 @@
                 type: 'text', id: myId, name: myName, text: text
             }));
 
-            addMessage('Вы', text, true);
+            addMessage(myName, text, true);
             input.value = '';
         };
 
         function addMessage(author, text, isMe) {
             let box = document.getElementById('messages');
             let div = document.createElement('div');
-            div.className = isMe ? 'text-right' : 'text-left';
-            div.innerHTML = `<span class="inline-block p-2 rounded-lg ${isMe ? 'bg-blue-600' : 'bg-slate-700'} max-w-[80%] break-words"><b>${author}:</b> ${text}</span>`;
+            
+            div.className = `flex gap-2.5 items-end animate-slide-up ${isMe ? 'flex-row-reverse' : 'flex-row'}`;
+
+            const firstLetter = author.charAt(0).toUpperCase();
+            const avatarColor = getColorForName(author);
+
+            div.innerHTML = `
+                <div class="w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${avatarColor} shadow-sm">
+                    ${firstLetter}
+                </div>
+                <div class="max-w-[78%] space-y-0.5">
+                    ${!isMe ? `<p class="text-[10px] text-slate-300 ml-1 font-medium">${escapeHTML(author)}</p>` : ''}
+                    <div class="p-3 rounded-2xl text-xs break-words shadow-md ${
+                        isMe 
+                            ? 'bg-blue-600 text-white rounded-br-xs' 
+                            : 'bg-slate-800/80 border border-white/10 text-slate-100 rounded-bl-xs'
+                    }">
+                        ${escapeHTML(text)}
+                    </div>
+                </div>
+            `;
             box.appendChild(div);
             box.scrollTop = box.scrollHeight;
         }
@@ -124,9 +218,17 @@
             let container = document.getElementById('users-list');
             container.innerHTML = '';
             users.forEach(u => {
-                let badge = document.createElement('span');
-                badge.className = 'text-xs bg-slate-700 px-2 py-1 rounded-md text-slate-300';
-                badge.textContent = u.name;
+                let badge = document.createElement('div');
+                const firstLetter = u.name.charAt(0).toUpperCase();
+                const avatarColor = getColorForName(u.name);
+
+                badge.className = 'flex items-center gap-1.5 bg-slate-950/60 border border-white/10 px-2.5 py-1 rounded-xl text-xs text-slate-200 animate-fade-in';
+                badge.innerHTML = `
+                    <span class="w-4 h-4 rounded-lg flex items-center justify-center text-[9px] font-bold ${avatarColor}">
+                        ${firstLetter}
+                    </span>
+                    <span>${escapeHTML(u.name)}</span>
+                `;
                 container.appendChild(badge);
             });
         }
@@ -138,7 +240,12 @@
             });
             renderUsers();
         }
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
     </script>
 </body>
 </html>
-
