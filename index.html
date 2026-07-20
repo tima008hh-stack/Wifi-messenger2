@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Локальный Чат</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center p-4">
+
+    <div class="w-full max-w-md bg-slate-800 p-6 rounded-2xl shadow-xl border border-slate-700">
+        
+        <div id="login-block" class="space-y-4">
+            <h1 class="text-2xl font-bold text-center text-blue-400">Сетевой Чат</h1>
+            <p class="text-xs text-slate-400 text-center">Введите одинаковый номер комнаты с другом, чтобы подключиться друг к другу.</p>
+            
+            <div>
+                <label class="text-xs text-slate-300">Ваше имя:</label>
+                <input type="text" id="username" placeholder="Например: Иван" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500 mt-1">
+            </div>
+
+            <div>
+                <label class="text-xs text-slate-300">Имя или номер комнаты (любые цифры):</label>
+                <input type="text" id="room" placeholder="Например: 777" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500 mt-1">
+            </div>
+
+            <button id="join-btn" class="w-full bg-blue-600 hover:bg-blue-500 font-bold p-3 rounded-xl transition">Войти</button>
+        </div>
+
+        <div id="chat-block" class="hidden space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+                <div>
+                    <h2 class="font-bold text-blue-400" id="room-display">Комната: -</h2>
+                    <p class="text-xs text-slate-400" id="user-display">Вы: -</p>
+                </div>
+                <span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-md">В сети</span>
+            </div>
+
+            <div>
+                <p class="text-xs text-slate-400 mb-1">Устройства в этой комнате:</p>
+                <div id="users-list" class="flex flex-wrap gap-1"></div>
+            </div>
+
+            <div id="messages" class="h-64 bg-slate-900 rounded-xl p-3 overflow-y-auto space-y-2 border border-slate-700 text-sm"></div>
+
+            <form id="msg-form" class="flex gap-2">
+                <input type="text" id="msg-input" placeholder="Сообщение..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-500 font-bold px-4 rounded-xl">></button>
+            </form>
+        </div>
+
+    </div>
+
+    <script>
+        let client, myName, myRoom, myId = Math.random().toString(36).substring(7);
+        let users = new Map();
+
+        document.getElementById('join-btn').onclick = () => {
+            myName = document.getElementById('username').value.trim();
+            myRoom = document.getElementById('room').value.trim();
+
+            if (!myName || !myRoom) return alert('Заполните все поля!');
+
+            document.getElementById('login-block').classList.add('hidden');
+            document.getElementById('chat-block').classList.remove('hidden');
+            document.getElementById('room-display').textContent = 'Комната: ' + myRoom;
+            document.getElementById('user-display').textContent = 'Вы: ' + myName;
+
+            // Подключение
+            client = mqtt.connect('wss://broker.hivemq.com:8884/mqtt');
+
+            client.on('connect', () => {
+                client.subscribe('my_custom_room_' + myRoom);
+                
+                // Каждые 2 секунды отправляем сигнал "Я тут"
+                setInterval(() => {
+                    client.publish('my_custom_room_' + myRoom, JSON.stringify({
+                        type: 'ping', id: myId, name: myName
+                    }));
+                    cleanUsers();
+                }, 2000);
+            });
+
+            client.on('message', (topic, msg) => {
+                let data = JSON.parse(msg.toString());
+                
+                if (data.type === 'ping') {
+                    users.set(data.id, { name: data.name, time: Date.now() });
+                    renderUsers();
+                }
+
+                if (data.type === 'text' && data.id !== myId) {
+                    addMessage(data.name, data.text, false);
+                }
+            });
+        };
+
+        // Отправка текста
+        document.getElementById('msg-form').onsubmit = (e) => {
+            e.preventDefault();
+            let input = document.getElementById('msg-input');
+            let text = input.value.trim();
+            if (!text) return;
+
+            client.publish('my_custom_room_' + myRoom, JSON.stringify({
+                type: 'text', id: myId, name: myName, text: text
+            }));
+
+            addMessage('Вы', text, true);
+            input.value = '';
+        };
+
+        function addMessage(author, text, isMe) {
+            let box = document.getElementById('messages');
+            let div = document.createElement('div');
+            div.className = isMe ? 'text-right' : 'text-left';
+            div.innerHTML = `<span class="inline-block p-2 rounded-lg ${isMe ? 'bg-blue-600' : 'bg-slate-700'} max-w-[80%] break-words"><b>${author}:</b> ${text}</span>`;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function renderUsers() {
+            let container = document.getElementById('users-list');
+            container.innerHTML = '';
+            users.forEach(u => {
+                let badge = document.createElement('span');
+                badge.className = 'text-xs bg-slate-700 px-2 py-1 rounded-md text-slate-300';
+                badge.textContent = u.name;
+                container.appendChild(badge);
+            });
+        }
+
+        function cleanUsers() {
+            let now = Date.now();
+            users.forEach((u, id) => {
+                if (now - u.time > 5000) users.delete(id);
+            });
+            renderUsers();
+        }
+    </script>
+</body>
+</html>
+
