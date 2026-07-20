@@ -7,40 +7,28 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <style>
-        /* Плавное выплывание сообщений */
         @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(12px) scale(0.98);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
+            from { opacity: 0; transform: translateY(12px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
         }
-        .animate-slide-up {
-            animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
+        .animate-slide-up { animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
-        /* Плавное появление блока */
         @keyframes fadeIn {
             from { opacity: 0; transform: scale(0.95); }
             to { opacity: 1; transform: scale(1); }
         }
-        .animate-fade-in {
-            animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
+        .animate-fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     </style>
 </head>
 <body class="bg-slate-950 text-white min-h-screen flex items-center justify-center p-4 font-sans relative overflow-hidden">
 
-    <video autoplay loop muted playsinline class="absolute inset-0 w-full h-full object-cover z-0">
-        <source src="2667.mp4" type="video/mp4">
+    <video id="bg-video" autoplay loop muted playsinline webkit-playsinline preload="auto" class="absolute inset-0 w-full h-full object-cover z-0">
+        <source src="./bg.mp4" type="video/mp4">
     </video>
 
-    <div class="absolute inset-0 bg-slate-950/60 backdrop-blur-xl z-0"></div>
+    <div class="absolute inset-0 bg-slate-950/50 backdrop-blur-xl z-0"></div>
 
-    <div class="w-full max-w-md bg-slate-900/50 backdrop-blur-2xl p-6 rounded-3xl shadow-2xl border border-white/10 z-10 animate-fade-in relative">
+    <div class="w-full max-w-md bg-slate-900/40 backdrop-blur-2xl p-6 rounded-3xl shadow-2xl border border-white/10 z-10 animate-fade-in relative">
         
         <div id="login-block" class="space-y-5">
             <div class="text-center space-y-1">
@@ -73,9 +61,7 @@
         <div id="chat-block" class="hidden space-y-4 animate-fade-in">
             <div class="flex justify-between items-center border-b border-white/10 pb-3">
                 <div class="flex items-center gap-3">
-                    <div id="my-avatar" class="w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-sm shadow-md">
-                        ?
-                    </div>
+                    <div id="my-avatar" class="w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-sm shadow-md">?</div>
                     <div>
                         <h2 class="font-bold text-sm text-white" id="room-display">Комната: -</h2>
                         <p class="text-xs text-slate-300" id="user-display">Вы: -</p>
@@ -106,10 +92,18 @@
     </div>
 
     <script>
+        // Принудительный запуск видео
+        document.addEventListener('DOMContentLoaded', () => {
+            const video = document.getElementById('bg-video');
+            if (video) {
+                video.muted = true;
+                video.play().catch(() => {});
+            }
+        });
+
         let client, myName, myRoom, myId = Math.random().toString(36).substring(7);
         let users = new Map();
 
-        // Палитра цветов для аватарок
         const avatarColors = [
             'bg-red-500 text-white', 'bg-orange-500 text-white', 'bg-amber-500 text-white',
             'bg-emerald-500 text-white', 'bg-teal-500 text-white', 'bg-cyan-500 text-white',
@@ -119,11 +113,8 @@
 
         function getColorForName(name) {
             let hash = 0;
-            for (let i = 0; i < name.length; i++) {
-                hash = name.charCodeAt(i) + ((hash << 5) - hash);
-            }
-            const index = Math.abs(hash) % avatarColors.length;
-            return avatarColors[index];
+            for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+            return avatarColors[Math.abs(hash) % avatarColors.length];
         }
 
         document.getElementById('join-btn').onclick = () => {
@@ -137,51 +128,39 @@
             document.getElementById('room-display').textContent = 'Комната: ' + myRoom;
             document.getElementById('user-display').textContent = 'Вы: ' + myName;
 
-            // Настройка личной аватарки
             const myAvatar = document.getElementById('my-avatar');
             myAvatar.textContent = myName.charAt(0).toUpperCase();
             myAvatar.className = `w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-base shadow-lg ${getColorForName(myName)}`;
 
-            // Подключение
             client = mqtt.connect('wss://broker.hivemq.com:8884/mqtt');
 
             client.on('connect', () => {
                 client.subscribe('my_custom_room_' + myRoom);
-                
-                // Сигнал присутствия каждые 2 секунды
                 setInterval(() => {
-                    client.publish('my_custom_room_' + myRoom, JSON.stringify({
-                        type: 'ping', id: myId, name: myName
-                    }));
+                    client.publish('my_custom_room_' + myRoom, JSON.stringify({ type: 'ping', id: myId, name: myName }));
                     cleanUsers();
                 }, 2000);
             });
 
             client.on('message', (topic, msg) => {
                 let data = JSON.parse(msg.toString());
-                
                 if (data.type === 'ping') {
                     users.set(data.id, { name: data.name, time: Date.now() });
                     renderUsers();
                 }
-
                 if (data.type === 'text' && data.id !== myId) {
                     addMessage(data.name, data.text, false);
                 }
             });
         };
 
-        // Отправка сообщения
         document.getElementById('msg-form').onsubmit = (e) => {
             e.preventDefault();
             let input = document.getElementById('msg-input');
             let text = input.value.trim();
             if (!text) return;
 
-            client.publish('my_custom_room_' + myRoom, JSON.stringify({
-                type: 'text', id: myId, name: myName, text: text
-            }));
-
+            client.publish('my_custom_room_' + myRoom, JSON.stringify({ type: 'text', id: myId, name: myName, text: text }));
             addMessage(myName, text, true);
             input.value = '';
         };
@@ -189,23 +168,15 @@
         function addMessage(author, text, isMe) {
             let box = document.getElementById('messages');
             let div = document.createElement('div');
-            
             div.className = `flex gap-2.5 items-end animate-slide-up ${isMe ? 'flex-row-reverse' : 'flex-row'}`;
-
             const firstLetter = author.charAt(0).toUpperCase();
             const avatarColor = getColorForName(author);
 
             div.innerHTML = `
-                <div class="w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${avatarColor} shadow-sm">
-                    ${firstLetter}
-                </div>
+                <div class="w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${avatarColor} shadow-sm">${firstLetter}</div>
                 <div class="max-w-[78%] space-y-0.5">
                     ${!isMe ? `<p class="text-[10px] text-slate-300 ml-1 font-medium">${escapeHTML(author)}</p>` : ''}
-                    <div class="p-3 rounded-2xl text-xs break-words shadow-md ${
-                        isMe 
-                            ? 'bg-blue-600 text-white rounded-br-xs' 
-                            : 'bg-slate-800/80 border border-white/10 text-slate-100 rounded-bl-xs'
-                    }">
+                    <div class="p-3 rounded-2xl text-xs break-words shadow-md ${isMe ? 'bg-blue-600 text-white rounded-br-xs' : 'bg-slate-800/80 border border-white/10 text-slate-100 rounded-bl-xs'}">
                         ${escapeHTML(text)}
                     </div>
                 </div>
@@ -223,28 +194,19 @@
                 const avatarColor = getColorForName(u.name);
 
                 badge.className = 'flex items-center gap-1.5 bg-slate-950/60 border border-white/10 px-2.5 py-1 rounded-xl text-xs text-slate-200 animate-fade-in';
-                badge.innerHTML = `
-                    <span class="w-4 h-4 rounded-lg flex items-center justify-center text-[9px] font-bold ${avatarColor}">
-                        ${firstLetter}
-                    </span>
-                    <span>${escapeHTML(u.name)}</span>
-                `;
+                badge.innerHTML = `<span class="w-4 h-4 rounded-lg flex items-center justify-center text-[9px] font-bold ${avatarColor}">${firstLetter}</span><span>${escapeHTML(u.name)}</span>`;
                 container.appendChild(badge);
             });
         }
 
         function cleanUsers() {
             let now = Date.now();
-            users.forEach((u, id) => {
-                if (now - u.time > 5000) users.delete(id);
-            });
+            users.forEach((u, id) => { if (now - u.time > 5000) users.delete(id); });
             renderUsers();
         }
 
         function escapeHTML(str) {
-            return str.replace(/[&<>'"]/g, 
-                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
-            );
+            return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
         }
     </script>
 </body>
