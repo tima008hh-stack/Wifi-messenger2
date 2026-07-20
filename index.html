@@ -29,6 +29,61 @@
             50% { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
         }
+
+        /* Liquid glass card */
+        .glass-card {
+          position: relative;
+          isolation: isolate;
+          overflow: hidden;
+          padding: 24px;
+          backdrop-filter: blur(18px) saturate(1.8);
+          -webkit-backdrop-filter: blur(18px) saturate(1.8);
+          border-radius: 20px;
+          border: 0.5px solid rgba(96, 165, 250, 0.45);
+          background-color: rgba(96, 165, 250, 0.15);
+          box-shadow: 0 8px 16px rgba(15,23,42,0.35), 0 20px 40px rgba(15,23,42,0.45);
+          color: #fff;
+        }
+
+        .glass-card::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background-image: url("data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 320 320%27><defs><radialGradient id=%27lg-hl%27 cx=%2750%%27 cy=%2750%%27 r=%2750%%27><stop offset=%270%%27 stop-color=%27%2360a5fa%27 stop-opacity=%270.30%27/><stop offset=%2770%%27 stop-color=%27%2360a5fa%27 stop-opacity=%270.05%27/><stop offset=%27100%%27 stop-color=%27%2360a5fa%27 stop-opacity=%270%27/></radialGradient></defs><circle cx=%27160%27 cy=%27160%27 r=%27160%27 fill=%27url(%23lg-hl)%27/></svg>");
+          background-repeat: no-repeat;
+          background-position: center;
+          background-size: cover;
+          filter: blur(35px);
+          opacity: 0.85;
+          mix-blend-mode: screen;
+          z-index: 0;
+        }
+
+        .glass-card::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' /%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.15 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+          background-size: 200px 200px;
+          opacity: 0.4;
+          pointer-events: none;
+          z-index: 1;
+        }
+
+        .glass-card > * {
+          position: relative;
+          z-index: 2;
+        }
+
+        /* Дополнительные малые элементы с жидким стеклом */
+        .glass-element {
+          position: relative;
+          isolation: isolate;
+          backdrop-filter: blur(12px) saturate(1.5);
+          -webkit-backdrop-filter: blur(12px) saturate(1.5);
+          background-color: rgba(96, 165, 250, 0.12);
+          border: 0.5px solid rgba(96, 165, 250, 0.3);
+        }
     </style>
 </head>
 <body class="bg-slate-950 text-white min-h-screen flex items-center justify-center p-4 font-sans relative overflow-hidden fallback-bg">
@@ -41,7 +96,7 @@
 
     <div class="absolute inset-0 bg-slate-950/50 backdrop-blur-xl z-0"></div>
 
-    <div class="w-full max-w-md bg-slate-900/40 backdrop-blur-2xl p-6 rounded-3xl shadow-2xl border border-white/10 z-10 animate-fade-in relative">
+    <div class="w-full max-w-md glass-card z-10 animate-fade-in relative">
         
         <div id="login-block" class="space-y-5">
             <div class="text-center space-y-1">
@@ -55,13 +110,13 @@
                 <div>
                     <label class="text-xs font-medium text-slate-300 ml-1">Твоё имя</label>
                     <input type="text" id="username" placeholder="Например: Иван" 
-                        class="w-full bg-slate-950/60 border border-white/10 rounded-2xl p-3.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all mt-1">
+                        class="w-full glass-element rounded-2xl p-3.5 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-all mt-1">
                 </div>
 
                 <div>
                     <label class="text-xs font-medium text-slate-300 ml-1">Номер или название комнаты</label>
                     <input type="text" id="room" placeholder="Например: 777" 
-                        class="w-full bg-slate-950/60 border border-white/10 rounded-2xl p-3.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all mt-1">
+                        class="w-full glass-element rounded-2xl p-3.5 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-all mt-1">
                 </div>
 
                 <button id="join-btn" 
@@ -90,14 +145,14 @@
                 <div id="users-list" class="flex flex-wrap gap-1.5"></div>
             </div>
 
-            <div id="messages" class="h-72 bg-slate-950/40 rounded-2xl p-3 overflow-y-auto space-y-2 border border-white/5 text-sm scroll-smooth"></div>
+            <div id="messages" class="h-72 glass-element rounded-2xl p-3 overflow-y-auto space-y-2 text-sm scroll-smooth"></div>
 
             <form id="msg-form" class="flex gap-2 items-center">
                 <input type="text" id="msg-input" placeholder="Напиши сообщение..." autocomplete="off" 
-                    class="flex-1 bg-slate-950/60 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all">
+                    class="flex-1 glass-element rounded-2xl px-4 py-3 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-all">
                 
                 <button type="button" id="mic-btn" 
-                    class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 p-3 rounded-2xl transition border border-white/10 flex items-center justify-center shrink-0">
+                    class="glass-element hover:bg-slate-700/50 active:scale-95 text-slate-200 p-3 rounded-2xl transition flex items-center justify-center shrink-0">
                     <svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
                     <span id="rec-timer" class="hidden text-xs font-bold text-red-400 ml-1">00:00</span>
                 </button>
@@ -215,7 +270,7 @@
                 <div class="w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${avatarColor} shadow-sm">${firstLetter}</div>
                 <div class="max-w-[78%] space-y-0.5">
                     ${!isMe ? `<p class="text-[10px] text-slate-300 ml-1 font-medium">${escapeHTML(author)}</p>` : ''}
-                    <div class="p-3 rounded-2xl text-xs break-words shadow-md ${isMe ? 'bg-blue-600 text-white rounded-br-xs' : 'bg-slate-800/80 border border-white/10 text-slate-100 rounded-bl-xs'}">
+                    <div class="p-3 rounded-2xl text-xs break-words shadow-md ${isMe ? 'bg-blue-600/80 backdrop-blur-md text-white rounded-br-xs' : 'glass-element text-slate-100 rounded-bl-xs'}">
                         ${escapeHTML(cleanText)}
                     </div>
                 </div>
@@ -237,7 +292,7 @@
                 <div class="w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${avatarColor} shadow-sm">${firstLetter}</div>
                 <div class="max-w-[78%] space-y-0.5">
                     ${!isMe ? `<p class="text-[10px] text-slate-300 ml-1 font-medium">${escapeHTML(author)}</p>` : ''}
-                    <div class="p-2.5 rounded-2xl shadow-md ${isMe ? 'bg-blue-600 text-white rounded-br-xs' : 'bg-slate-800/80 border border-white/10 text-slate-100 rounded-bl-xs'}">
+                    <div class="p-2.5 rounded-2xl shadow-md ${isMe ? 'bg-blue-600/80 backdrop-blur-md text-white rounded-br-xs' : 'glass-element text-slate-100 rounded-bl-xs'}">
                         <audio controls class="h-8 w-48 rounded-lg max-w-full">
                             <source src="${audioBase64}" type="audio/webm">
                         </audio>
@@ -310,7 +365,7 @@
                 const firstLetter = u.name.charAt(0).toUpperCase();
                 const avatarColor = getColorForName(u.name);
 
-                badge.className = 'flex items-center gap-1.5 bg-slate-950/60 border border-white/10 px-2.5 py-1 rounded-xl text-xs text-slate-200 animate-fade-in';
+                badge.className = 'flex items-center gap-1.5 glass-element px-2.5 py-1 rounded-xl text-xs text-slate-200 animate-fade-in';
                 badge.innerHTML = `<span class="w-4 h-4 rounded-lg flex items-center justify-center text-[9px] font-bold ${avatarColor}">${firstLetter}</span><span>${escapeHTML(u.name)}</span>`;
                 container.appendChild(badge);
             });
