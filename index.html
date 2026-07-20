@@ -110,12 +110,19 @@
 
             <div id="messages" class="h-72 bg-slate-950/40 rounded-2xl p-3 overflow-y-auto space-y-2 border border-white/5 text-sm scroll-smooth"></div>
 
-            <form id="msg-form" class="flex gap-2">
+            <form id="msg-form" class="flex gap-2 items-center">
                 <input type="text" id="msg-input" placeholder="Напиши сообщение..." autocomplete="off" 
                     class="flex-1 bg-slate-950/60 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all">
+                
+                <button type="button" id="mic-btn" 
+                    class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 p-3 rounded-2xl transition border border-white/10 flex items-center justify-center shrink-0">
+                    <svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+                    <span id="rec-timer" class="hidden text-xs font-bold text-red-400 ml-1">00:00</span>
+                </button>
+
                 <button type="submit" 
-                    class="bg-blue-600 hover:bg-blue-500 active:scale-95 font-bold px-4 rounded-2xl transition shadow-md shadow-blue-600/20 flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                    class="bg-blue-600 hover:bg-blue-500 active:scale-95 font-bold p-3 rounded-2xl transition shadow-md shadow-blue-600/20 flex items-center justify-center shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
                 </button>
             </form>
         </div>
@@ -128,42 +135,28 @@
             const preloader = document.getElementById('preloader');
             const statusText = document.getElementById('loader-status');
             statusText.textContent = "Готово к подключению";
-            setTimeout(() => {
-                preloader.classList.add('loader-hide');
-            }, 600);
+            setTimeout(() => { preloader.classList.add('loader-hide'); }, 600);
         });
 
         // Запуск видео
         document.addEventListener('DOMContentLoaded', () => {
             const video = document.getElementById('bg-video');
-            if (video) {
-                video.muted = true;
-                video.play().catch(() => {});
-            }
+            if (video) { video.muted = true; video.play().catch(() => {}); }
         });
 
-        // 🔞 ФУНКЦИЯ ЦЕНЗУРЫ МАТОВ
+        // Цензура матов
         function censorText(text) {
             const badWordsPatterns = [
-                /хуй[яиеюаммиыовлдезс]?/gi,
-                /пизд[аеыоуияюаммивлдезс]?/gi,
-                /еб[аеиоултщсйбммяюаммивлдезс]?/gi,
-                /еб [а-я]+/gi,
-                /бля[тдбвлдезс]?/gi,
-                /сук[аиоеаммивлдезс]?/gi,
-                /гандон[аммивлдезс]?/gi,
-                /мудак[аммивлдезс]?/gi,
-                /пидор[асиоеаммивлдезс]?/gi,
-                /залуп[аеыоуияюаммивлдезс]?/gi,
-                /чм[оауеы]?/gi
+                /хуй[яиеюаммиыовлдезс]?/gi, /пизд[аеыоуияюаммивлдезс]?/gi,
+                /еб[аеиоултщсйбммяюаммивлдезс]?/gi, /еб [а-я]+/gi,
+                /бля[тдбвлдезс]?/gi, /сук[аиоеаммивлдезс]?/gi,
+                /гандон[аммивлдезс]?/gi, /мудак[аммивлдезс]?/gi,
+                /пидор[асиоеаммивлдезс]?/gi, /залуп[аеыоуияюаммивлдезс]?/gi, /чм[оауеы]?/gi
             ];
-
             let result = text;
             badWordsPatterns.forEach(pattern => {
                 result = result.replace(pattern, (match) => {
-                    const firstLetter = match.charAt(0);
-                    const stars = '*'.repeat(match.length - 1);
-                    return firstLetter + stars;
+                    return match.charAt(0) + '*'.repeat(match.length - 1);
                 });
             });
             return result;
@@ -216,12 +209,14 @@
                     users.set(data.id, { name: data.name, time: Date.now() });
                     renderUsers();
                 }
-                if (data.type === 'text' && data.id !== myId) {
-                    addMessage(data.name, data.text, false);
+                if (data.id !== myId) {
+                    if (data.type === 'text') addMessage(data.name, data.text, false);
+                    if (data.type === 'audio') addAudioMessage(data.name, data.audio, false);
                 }
             });
         };
 
+        // Отправка текста
         document.getElementById('msg-form').onsubmit = (e) => {
             e.preventDefault();
             let input = document.getElementById('msg-input');
@@ -240,8 +235,6 @@
             
             const firstLetter = author.charAt(0).toUpperCase();
             const avatarColor = getColorForName(author);
-            
-            // Применяем цензуру перед показом на экране
             const cleanText = censorText(text);
 
             div.innerHTML = `
@@ -256,6 +249,84 @@
             box.appendChild(div);
             box.scrollTop = box.scrollHeight;
         }
+
+        // Показ ГС в чате
+        function addAudioMessage(author, audioBase64, isMe) {
+            let box = document.getElementById('messages');
+            let div = document.createElement('div');
+            div.className = `flex gap-2.5 items-end animate-slide-up ${isMe ? 'flex-row-reverse' : 'flex-row'}`;
+
+            const firstLetter = author.charAt(0).toUpperCase();
+            const avatarColor = getColorForName(author);
+
+            div.innerHTML = `
+                <div class="w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${avatarColor} shadow-sm">${firstLetter}</div>
+                <div class="max-w-[78%] space-y-0.5">
+                    ${!isMe ? `<p class="text-[10px] text-slate-300 ml-1 font-medium">${escapeHTML(author)}</p>` : ''}
+                    <div class="p-2.5 rounded-2xl shadow-md ${isMe ? 'bg-blue-600 text-white rounded-br-xs' : 'bg-slate-800/80 border border-white/10 text-slate-100 rounded-bl-xs'}">
+                        <audio controls class="h-8 w-48 rounded-lg max-w-full">
+                            <source src="${audioBase64}" type="audio/webm">
+                        </audio>
+                    </div>
+                </div>
+            `;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        // 🎙️ ЛОГИКА ЗАПИСИ ГОЛОСОВЫХ СООБЩЕНИЙ
+        let mediaRecorder, audioChunks = [], isRecording = false, recTimerInterval, seconds = 0;
+        const micBtn = document.getElementById('mic-btn');
+        const recTimer = document.getElementById('rec-timer');
+
+        micBtn.onclick = async () => {
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+
+                    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                    
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const reader = new FileReader();
+                        reader.readAsDataURL(audioBlob);
+                        reader.onloadend = () => {
+                            const base64Audio = reader.result;
+                            client.publish('my_custom_room_' + myRoom, JSON.stringify({ type: 'audio', id: myId, name: myName, audio: base64Audio }));
+                            addAudioMessage(myName, base64Audio, true);
+                        };
+                        stream.getTracks().forEach(track => track.stop());
+                    };
+
+                    mediaRecorder.start();
+                    isRecording = true;
+                    micBtn.classList.replace('bg-slate-800', 'bg-red-600');
+                    micBtn.classList.add('animate-pulse');
+                    recTimer.classList.remove('hidden');
+
+                    seconds = 0;
+                    recTimer.textContent = '00:00';
+                    recTimerInterval = setInterval(() => {
+                        seconds++;
+                        let m = String(Math.floor(seconds / 60)).padStart(2, '0');
+                        let s = String(seconds % 60).padStart(2, '0');
+                        recTimer.textContent = `${m}:${s}`;
+                    }, 1000);
+
+                } catch (err) {
+                    alert('Не удалось получить доступ к микрофону!');
+                }
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                micBtn.classList.replace('bg-red-600', 'bg-slate-800');
+                micBtn.classList.remove('animate-pulse');
+                recTimer.classList.add('hidden');
+                clearInterval(recTimerInterval);
+            }
+        };
 
         function renderUsers() {
             let container = document.getElementById('users-list');
