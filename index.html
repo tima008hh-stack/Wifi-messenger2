@@ -19,13 +19,6 @@
         }
         .animate-fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
-        .loader-hide {
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.6s ease, transform 0.6s ease;
-            transform: scale(1.05);
-        }
-
         .fallback-bg {
             background: linear-gradient(-45deg, #0f172a, #1e1b4b, #0f172a, #172554);
             background-size: 400% 400%;
@@ -40,24 +33,13 @@
 </head>
 <body class="bg-slate-950 text-white min-h-screen flex items-center justify-center p-4 font-sans relative overflow-hidden fallback-bg">
 
-    <video id="bg-video" autoplay loop muted playsinline webkit-playsinline preload="none" class="absolute inset-0 w-full h-full object-cover z-0">
+    <video id="bg-video" autoplay loop muted playsinline webkit-playsinline class="absolute inset-0 w-full h-full object-cover z-0">
         <source src="./bg.mp4" type="video/mp4">
         <source src="./2668.mp4" type="video/mp4">
         <source src="./2667.mp4" type="video/mp4">
     </video>
 
     <div class="absolute inset-0 bg-slate-950/50 backdrop-blur-xl z-0"></div>
-
-    <div id="preloader" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-2xl transition-all duration-500">
-        <div class="relative flex items-center justify-center mb-6">
-            <div class="w-20 h-20 rounded-full border-4 border-blue-500/20 border-t-blue-500 animate-spin"></div>
-            <div class="absolute w-10 h-10 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/40 animate-pulse">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
-            </div>
-        </div>
-        <h2 class="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-300 tracking-wide">Сетевой Чат</h2>
-        <p id="loader-status" class="text-xs text-slate-400 mt-2 font-medium tracking-wider uppercase animate-pulse">Загрузка модулей...</p>
-    </div>
 
     <div class="w-full max-w-md bg-slate-900/40 backdrop-blur-2xl p-6 rounded-3xl shadow-2xl border border-white/10 z-10 animate-fade-in relative">
         
@@ -103,17 +85,6 @@
                 </span>
             </div>
 
-            <div class="flex justify-between items-center bg-slate-950/40 border border-white/5 px-3 py-2 rounded-2xl text-xs">
-                <label class="flex items-center gap-2 cursor-pointer select-none text-slate-300">
-                    <input type="checkbox" id="save-history-toggle" checked class="w-4 h-4 rounded accent-blue-600 cursor-pointer">
-                    <span>Сохранять историю</span>
-                </label>
-                <button type="button" id="clear-chat-btn" class="text-rose-400 hover:text-rose-300 transition flex items-center gap-1 font-medium active:scale-95">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-                    <span>Очистить</span>
-                </button>
-            </div>
-
             <div>
                 <p class="text-[11px] text-slate-300 mb-1.5 font-medium">Участники рядом:</p>
                 <div id="users-list" class="flex flex-wrap gap-1.5"></div>
@@ -141,10 +112,6 @@
     </div>
 
     <script>
-        // Прелоадер
-     //   window.addEventListener('load', () => {
-            
-
         // Запуск видео
         document.addEventListener('DOMContentLoaded', () => {
             const video = document.getElementById('bg-video');
@@ -171,7 +138,6 @@
 
         let client, myName, myRoom, myId = Math.random().toString(36).substring(7);
         let users = new Map();
-        let chatHistory = [];
 
         const avatarColors = [
             'bg-red-500 text-white', 'bg-orange-500 text-white', 'bg-amber-500 text-white',
@@ -185,52 +151,6 @@
             for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
             return avatarColors[Math.abs(hash) % avatarColors.length];
         }
-
-        // Загрузка сохранённой истории из памяти
-        function loadHistory() {
-            const savedToggle = localStorage.getItem('save_chat_enabled');
-            if (savedToggle !== null) {
-                document.getElementById('save-history-toggle').checked = (savedToggle === 'true');
-            }
-
-            if (!document.getElementById('save-history-toggle').checked) return;
-
-            const saved = localStorage.getItem('chat_history_' + myRoom);
-            if (saved) {
-                try {
-                    chatHistory = JSON.parse(saved);
-                    chatHistory.forEach(item => {
-                        if (item.type === 'text') addMessage(item.author, item.content, item.isMe, false);
-                        if (item.type === 'audio') addAudioMessage(item.author, item.content, item.isMe, false);
-                    });
-                } catch (e) {}
-            }
-        }
-
-        // Сохранение истории в память
-        function saveMessageToHistory(item) {
-            if (!document.getElementById('save-history-toggle').checked) return;
-            chatHistory.push(item);
-            // Храним максимум последние 50 сообщений
-            if (chatHistory.length > 50) chatHistory.shift();
-            localStorage.setItem('chat_history_' + myRoom, JSON.stringify(chatHistory));
-        }
-
-        // Переключатель галочки "Сохранять историю"
-        document.getElementById('save-history-toggle').onchange = (e) => {
-            localStorage.setItem('save_chat_enabled', e.target.checked);
-            if (!e.target.checked) {
-                localStorage.removeItem('chat_history_' + myRoom);
-                chatHistory = [];
-            }
-        };
-
-        // Кнопка очистки чата
-        document.getElementById('clear-chat-btn').onclick = () => {
-            document.getElementById('messages').innerHTML = '';
-            chatHistory = [];
-            localStorage.removeItem('chat_history_' + myRoom);
-        };
 
         document.getElementById('join-btn').onclick = () => {
             myName = document.getElementById('username').value.trim();
@@ -246,8 +166,6 @@
             const myAvatar = document.getElementById('my-avatar');
             myAvatar.textContent = myName.charAt(0).toUpperCase();
             myAvatar.className = `w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-base shadow-lg ${getColorForName(myName)}`;
-
-            loadHistory();
 
             client = mqtt.connect('wss://broker.hivemq.com:8884/mqtt');
 
@@ -266,8 +184,8 @@
                     renderUsers();
                 }
                 if (data.id !== myId) {
-                    if (data.type === 'text') addMessage(data.name, data.text, false, true);
-                    if (data.type === 'audio') addAudioMessage(data.name, data.audio, false, true);
+                    if (data.type === 'text') addMessage(data.name, data.text, false);
+                    if (data.type === 'audio') addAudioMessage(data.name, data.audio, false);
                 }
             });
         };
@@ -280,11 +198,11 @@
             if (!text) return;
 
             client.publish('my_custom_room_' + myRoom, JSON.stringify({ type: 'text', id: myId, name: myName, text: text }));
-            addMessage(myName, text, true, true);
+            addMessage(myName, text, true);
             input.value = '';
         };
 
-        function addMessage(author, text, isMe, shouldSave = true) {
+        function addMessage(author, text, isMe) {
             let box = document.getElementById('messages');
             let div = document.createElement('div');
             div.className = `flex gap-2.5 items-end animate-slide-up ${isMe ? 'flex-row-reverse' : 'flex-row'}`;
@@ -304,14 +222,10 @@
             `;
             box.appendChild(div);
             box.scrollTop = box.scrollHeight;
-
-            if (shouldSave) {
-                saveMessageToHistory({ type: 'text', author, content: text, isMe });
-            }
         }
 
-        // Показ ГС
-        function addAudioMessage(author, audioBase64, isMe, shouldSave = true) {
+        // Показ ГС в чате
+        function addAudioMessage(author, audioBase64, isMe) {
             let box = document.getElementById('messages');
             let div = document.createElement('div');
             div.className = `flex gap-2.5 items-end animate-slide-up ${isMe ? 'flex-row-reverse' : 'flex-row'}`;
@@ -332,13 +246,9 @@
             `;
             box.appendChild(div);
             box.scrollTop = box.scrollHeight;
-
-            if (shouldSave) {
-                saveMessageToHistory({ type: 'audio', author, content: audioBase64, isMe });
-            }
         }
 
-        // 🎙️ ЛОГИКА ЗАПИСИ ГС
+        // 🎙️ ЛОГИКА ЗАПИСИ ГОЛОСОВЫХ СООБЩЕНИЙ
         let mediaRecorder, audioChunks = [], isRecording = false, recTimerInterval, seconds = 0;
         const micBtn = document.getElementById('mic-btn');
         const recTimer = document.getElementById('rec-timer');
@@ -359,7 +269,7 @@
                         reader.onloadend = () => {
                             const base64Audio = reader.result;
                             client.publish('my_custom_room_' + myRoom, JSON.stringify({ type: 'audio', id: myId, name: myName, audio: base64Audio }));
-                            addAudioMessage(myName, base64Audio, true, true);
+                            addAudioMessage(myName, base64Audio, true);
                         };
                         stream.getTracks().forEach(track => track.stop());
                     };
@@ -368,4 +278,53 @@
                     isRecording = true;
                     micBtn.classList.replace('bg-slate-800', 'bg-red-600');
                     micBtn.classList.add('animate-pulse');
-                    recTimer.classLis
+                    recTimer.classList.remove('hidden');
+
+                    seconds = 0;
+                    recTimer.textContent = '00:00';
+                    recTimerInterval = setInterval(() => {
+                        seconds++;
+                        let m = String(Math.floor(seconds / 60)).padStart(2, '0');
+                        let s = String(seconds % 60).padStart(2, '0');
+                        recTimer.textContent = `${m}:${s}`;
+                    }, 1000);
+
+                } catch (err) {
+                    alert('Не удалось получить доступ к микрофону!');
+                }
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                micBtn.classList.replace('bg-red-600', 'bg-slate-800');
+                micBtn.classList.remove('animate-pulse');
+                recTimer.classList.add('hidden');
+                clearInterval(recTimerInterval);
+            }
+        };
+
+        function renderUsers() {
+            let container = document.getElementById('users-list');
+            container.innerHTML = '';
+            users.forEach(u => {
+                let badge = document.createElement('div');
+                const firstLetter = u.name.charAt(0).toUpperCase();
+                const avatarColor = getColorForName(u.name);
+
+                badge.className = 'flex items-center gap-1.5 bg-slate-950/60 border border-white/10 px-2.5 py-1 rounded-xl text-xs text-slate-200 animate-fade-in';
+                badge.innerHTML = `<span class="w-4 h-4 rounded-lg flex items-center justify-center text-[9px] font-bold ${avatarColor}">${firstLetter}</span><span>${escapeHTML(u.name)}</span>`;
+                container.appendChild(badge);
+            });
+        }
+
+        function cleanUsers() {
+            let now = Date.now();
+            users.forEach((u, id) => { if (now - u.time > 5000) users.delete(id); });
+            renderUsers();
+        }
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+        }
+    </script>
+</body>
+</html>
