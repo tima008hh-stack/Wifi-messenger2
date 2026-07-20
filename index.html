@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <style>
-        /* Анимации */
         @keyframes slideUp {
             from { opacity: 0; transform: translateY(12px) scale(0.98); }
             to { opacity: 1; transform: translateY(0) scale(1); }
@@ -20,7 +19,6 @@
         }
         .animate-fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
-        /* Плавное исчезновение экрана загрузки */
         .loader-hide {
             opacity: 0;
             pointer-events: none;
@@ -28,7 +26,6 @@
             transform: scale(1.05);
         }
 
-        /* Запасной анимированный градиент на случай проблемы с видео */
         .fallback-bg {
             background: linear-gradient(-45deg, #0f172a, #1e1b4b, #0f172a, #172554);
             background-size: 400% 400%;
@@ -126,20 +123,17 @@
     </div>
 
     <script>
-        // Инициализация загрузочного экрана
+        // Прелоадер
         window.addEventListener('load', () => {
             const preloader = document.getElementById('preloader');
             const statusText = document.getElementById('loader-status');
-            
             statusText.textContent = "Готово к подключению";
-            
-            // Плавное скрытие прелоадера через небольшой интервал
             setTimeout(() => {
                 preloader.classList.add('loader-hide');
             }, 600);
         });
 
-        // Запуск фонового видео
+        // Запуск видео
         document.addEventListener('DOMContentLoaded', () => {
             const video = document.getElementById('bg-video');
             if (video) {
@@ -147,6 +141,33 @@
                 video.play().catch(() => {});
             }
         });
+
+        // 🔞 ФУНКЦИЯ ЦЕНЗУРЫ МАТОВ
+        function censorText(text) {
+            const badWordsPatterns = [
+                /хуй[яиеюаммиыовлдезс]?/gi,
+                /пизд[аеыоуияюаммивлдезс]?/gi,
+                /еб[аеиоултщсйбммяюаммивлдезс]?/gi,
+                /еб [а-я]+/gi,
+                /бля[тдбвлдезс]?/gi,
+                /сук[аиоеаммивлдезс]?/gi,
+                /гандон[аммивлдезс]?/gi,
+                /мудак[аммивлдезс]?/gi,
+                /пидор[асиоеаммивлдезс]?/gi,
+                /залуп[аеыоуияюаммивлдезс]?/gi,
+                /чм[оауеы]?/gi
+            ];
+
+            let result = text;
+            badWordsPatterns.forEach(pattern => {
+                result = result.replace(pattern, (match) => {
+                    const firstLetter = match.charAt(0);
+                    const stars = '*'.repeat(match.length - 1);
+                    return firstLetter + stars;
+                });
+            });
+            return result;
+        }
 
         let client, myName, myRoom, myId = Math.random().toString(36).substring(7);
         let users = new Map();
@@ -216,15 +237,19 @@
             let box = document.getElementById('messages');
             let div = document.createElement('div');
             div.className = `flex gap-2.5 items-end animate-slide-up ${isMe ? 'flex-row-reverse' : 'flex-row'}`;
+            
             const firstLetter = author.charAt(0).toUpperCase();
             const avatarColor = getColorForName(author);
+            
+            // Применяем цензуру перед показом на экране
+            const cleanText = censorText(text);
 
             div.innerHTML = `
                 <div class="w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${avatarColor} shadow-sm">${firstLetter}</div>
                 <div class="max-w-[78%] space-y-0.5">
                     ${!isMe ? `<p class="text-[10px] text-slate-300 ml-1 font-medium">${escapeHTML(author)}</p>` : ''}
                     <div class="p-3 rounded-2xl text-xs break-words shadow-md ${isMe ? 'bg-blue-600 text-white rounded-br-xs' : 'bg-slate-800/80 border border-white/10 text-slate-100 rounded-bl-xs'}">
-                        ${escapeHTML(text)}
+                        ${escapeHTML(cleanText)}
                     </div>
                 </div>
             `;
@@ -258,4 +283,3 @@
     </script>
 </body>
 </html>
-2
