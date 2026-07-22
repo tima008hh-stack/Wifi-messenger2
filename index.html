@@ -80,9 +80,14 @@
                         <p class="text-xs text-slate-300" id="user-display">Вы: -</p>
                     </div>
                 </div>
-                <span class="text-[11px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-full font-medium flex items-center gap-1.5">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> В сети
-                </span>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="test-sound-btn" title="Проверить звук" class="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 transition active:scale-95 text-xs flex items-center gap-1">
+                        🔊 <span class="hidden sm:inline text-[10px]">Тест</span>
+                    </button>
+                    <span class="text-[11px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-full font-medium flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> В сети
+                    </span>
+                </div>
             </div>
 
             <div>
@@ -96,16 +101,6 @@
                 <input type="text" id="msg-input" placeholder="Напиши сообщение..." autocomplete="off" 
                     class="flex-1 bg-slate-950/60 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all">
                 
-                <!-- Кнопка выбора файла (Фото / Видео) -->
-                <input type="file" id="media-input" accept="image/*,video/*" class="hidden">
-                <button type="button" id="media-btn" title="Отправить фото или видео"
-                    class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 p-3 rounded-2xl transition border border-white/10 flex items-center justify-center shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57a4 4 0 1 1 5.66 5.66l-8.59 8.58a2 4 0 0 1-2.83-2.83l8.49-8.48"/>
-                    </svg>
-                </button>
-
-                <!-- Кнопка записи микрофона -->
                 <button type="button" id="mic-btn" 
                     class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 p-3 rounded-2xl transition border border-white/10 flex items-center justify-center shrink-0">
                     <svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
@@ -145,6 +140,44 @@
             });
             return result;
         }
+
+        // --- ВОСПРОИЗВЕДЕНИЕ СВОЕГО ЗВУКОВОГО ФАЙЛА ---
+        // Положи файл notification.mp3 рядом с этим HTML-файлом
+        const notifyAudio = new Audio('./notification.mp3');
+
+        function playNotificationSound() {
+            notifyAudio.currentTime = 0;
+            notifyAudio.play().catch(() => {
+                playFallbackSound();
+            });
+        }
+
+        // Запасной звук, если нет файла notification.mp3
+        function playFallbackSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.08);
+
+                gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.2);
+            } catch (e) {}
+        }
+
+        // Кнопка проверки звука
+        document.getElementById('test-sound-btn').onclick = () => {
+            playNotificationSound();
+        };
 
         let client, myName, myRoom, myId = Math.random().toString(36).substring(7);
         let users = new Map();
@@ -194,9 +227,14 @@
                     renderUsers();
                 }
                 if (data.id !== myId) {
-                    if (data.type === 'text') addMessage(data.name, data.text, false);
-                    if (data.type === 'audio') addAudioMessage(data.name, data.audio, false);
-                    if (data.type === 'media') addMediaMessage(data.name, data.url, data.mediaType, false);
+                    if (data.type === 'text') {
+                        addMessage(data.name, data.text, false);
+                        playNotificationSound();
+                    }
+                    if (data.type === 'audio') {
+                        addAudioMessage(data.name, data.audio, false);
+                        playNotificationSound();
+                    }
                 }
             });
         };
@@ -258,74 +296,6 @@
             box.appendChild(div);
             box.scrollTop = box.scrollHeight;
         }
-
-        // Показ Фото / Видео в чате
-        function addMediaMessage(author, fileBase64, mediaType, isMe) {
-            let box = document.getElementById('messages');
-            let div = document.createElement('div');
-            div.className = `flex gap-2.5 items-end animate-slide-up ${isMe ? 'flex-row-reverse' : 'flex-row'}`;
-
-            const firstLetter = author.charAt(0).toUpperCase();
-            const avatarColor = getColorForName(author);
-
-            let contentHTML = '';
-            if (mediaType === 'image') {
-                contentHTML = `<img src="${fileBase64}" class="max-w-[200px] max-h-[200px] rounded-xl object-cover border border-white/10 shadow-sm" />`;
-            } else if (mediaType === 'video') {
-                contentHTML = `<video src="${fileBase64}" controls class="max-w-[200px] max-h-[200px] rounded-xl border border-white/10 shadow-sm"></video>`;
-            }
-
-            div.innerHTML = `
-                <div class="w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${avatarColor} shadow-sm">${firstLetter}</div>
-                <div class="max-w-[78%] space-y-0.5">
-                    ${!isMe ? `<p class="text-[10px] text-slate-300 ml-1 font-medium">${escapeHTML(author)}</p>` : ''}
-                    <div class="p-1.5 rounded-2xl shadow-md ${isMe ? 'bg-blue-600/90 text-white rounded-br-xs' : 'bg-slate-800/90 border border-white/10 text-slate-100 rounded-bl-xs'}">
-                        ${contentHTML}
-                    </div>
-                </div>
-            `;
-            box.appendChild(div);
-            box.scrollTop = box.scrollHeight;
-        }
-
-        // 🖼️ ЛОГИКА ОТПРАВКИ МЕДИАФАЙЛОВ (ФОТО/ВИДЕО)
-        const mediaBtn = document.getElementById('media-btn');
-        const mediaInput = document.getElementById('media-input');
-
-        mediaBtn.onclick = () => mediaInput.click();
-
-        mediaInput.onchange = (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            // Ограничение размера файла (~5 МБ), чтобы MQTT брокер не отклонил длинный Base64
-            if (file.size > 5 * 1024 * 1024) {
-                alert('Файл слишком большой! Выберите файл меньше 5 МБ.');
-                mediaInput.value = '';
-                return;
-            }
-
-            const mediaType = file.type.startsWith('image/') ? 'image' : (file.type.startsWith('video/') ? 'video' : null);
-            if (!mediaType) {
-                alert('Пожалуйста, выберите файл с изображением или видео.');
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => {
-                const base64Data = reader.result;
-                client.publish('my_custom_room_' + myRoom, JSON.stringify({ 
-                    type: 'media', 
-                    id: myId, 
-                    name: myName, 
-                    url: base64Data, 
-                    mediaType: mediaType 
-                }));
-                addMediaMessage(myName, base64Data, mediaType, true);
-                mediaInput.value = '';
-            };
-        };
 
         // 🎙️ ЛОГИКА ЗАПИСИ ГОЛОСОВЫХ СООБЩЕНИЙ
         let mediaRecorder, audioChunks = [], isRecording = false, recTimerInterval, seconds = 0;
