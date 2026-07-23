@@ -1,145 +1,269 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" class="h-full w-full">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Локальный Чат</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Сетевой Мессенджер</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-    <style>
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(12px) scale(0.98); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
         }
-        .animate-slide-up { animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    </script>
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            box-sizing: border-box;
+        }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.95); }
+        /* 120Hz Анимации */
+        @keyframes slideUpFast {
+            from { opacity: 0; transform: translate3d(0, 12px, 0) scale(0.98); }
+            to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+        }
+        .animate-slide-up { 
+            animation: slideUpFast 0.2s cubic-bezier(0.05, 0.9, 0.1, 1) forwards; 
+            will-change: transform, opacity;
+        }
+
+        @keyframes fadeInFast {
+            from { opacity: 0; transform: scale(0.97); }
             to { opacity: 1; transform: scale(1); }
         }
-        .animate-fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-fade-in { 
+            animation: fadeInFast 0.2s cubic-bezier(0.05, 0.9, 0.1, 1) forwards; 
+            will-change: transform, opacity;
+        }
 
-        .fallback-bg {
-            background: linear-gradient(-45deg, #0f172a, #1e1b4b, #0f172a, #172554);
-            background-size: 400% 400%;
-            animation: gradientBG 15s ease infinite;
+        /* Полный экран для мобильных */
+        html, body {
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
         }
-        @keyframes gradientBG {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
+
+        /* Скроллбар */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(150, 150, 150, 0.25); border-radius: 10px; }
     </style>
 </head>
-<body class="bg-slate-950 text-white min-h-screen flex items-center justify-center p-4 font-sans relative overflow-hidden fallback-bg">
+<body id="app-body" class="dark bg-slate-950 text-slate-100 font-sans select-none overflow-hidden h-full w-full">
 
-    <video id="bg-video" autoplay loop muted playsinline webkit-playsinline class="absolute inset-0 w-full h-full object-cover z-0">
-        <source src="./bg.mp4" type="video/mp4">
-        <source src="./2668.mp4" type="video/mp4">
-        <source src="./2667.mp4" type="video/mp4">
-    </video>
-
-    <div class="absolute inset-0 bg-slate-950/50 backdrop-blur-xl z-0"></div>
-
-    <div class="w-full max-w-md bg-slate-900/40 backdrop-blur-2xl p-6 rounded-3xl shadow-2xl border border-white/10 z-10 animate-fade-in relative">
-        
-        <div id="login-block" class="space-y-5">
+    <!-- Окно авторизации (Регистрация / Вход) -->
+    <div id="login-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
+        <div class="w-full max-w-md bg-slate-900 border border-slate-800 p-7 rounded-3xl shadow-2xl animate-fade-in space-y-5">
             <div class="text-center space-y-1">
-                <h1 class="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-300">
-                    Сетевой Чат
+                <h1 class="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">
+                    Мессенджер
                 </h1>
-                <p class="text-xs text-slate-300">Введи одинаковый номер комнаты с другом.</p>
+                <p class="text-xs text-slate-400" id="auth-subtitle">Войдите в аккаунт или зарегистрируйтесь</p>
+            </div>
+
+            <!-- Вкладки: Вход / Регистрация -->
+            <div class="flex bg-slate-950 p-1 rounded-2xl border border-slate-800">
+                <button type="button" id="tab-login" class="flex-1 py-2 rounded-xl text-xs font-bold transition bg-blue-600 text-white shadow-md">
+                    Вход
+                </button>
+                <button type="button" id="tab-register" class="flex-1 py-2 rounded-xl text-xs font-bold transition text-slate-400 hover:text-white">
+                    Регистрация
+                </button>
             </div>
             
-            <div class="space-y-4">
+            <!-- Форма входа -->
+            <form id="form-login" class="space-y-3.5">
+                <div>
+                    <label class="text-xs font-medium text-slate-300 ml-1">Личный ID</label>
+                    <input type="text" id="login-id" placeholder="Например: ivan777" required
+                        class="w-full bg-slate-950 border border-slate-800 rounded-2xl p-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-all mt-1">
+                </div>
+
+                <div>
+                    <label class="text-xs font-medium text-slate-300 ml-1">Пароль</label>
+                    <input type="password" id="login-password" placeholder="Введи пароль" required
+                        class="w-full bg-slate-950 border border-slate-800 rounded-2xl p-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-all mt-1">
+                </div>
+
+                <button type="submit" 
+                    class="w-full bg-blue-600 hover:bg-blue-500 active:scale-[0.98] font-semibold p-3.5 rounded-2xl transition text-sm text-white shadow-lg shadow-blue-600/20 mt-2">
+                    Войти в аккаунт
+                </button>
+            </form>
+
+            <!-- Форма регистрации -->
+            <form id="form-register" class="space-y-3.5 hidden">
+                <div>
+                    <label class="text-xs font-medium text-slate-300 ml-1">Личный ID (уникальный)</label>
+                    <input type="text" id="reg-id" placeholder="Например: ivan777" required
+                        class="w-full bg-slate-950 border border-slate-800 rounded-2xl p-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-all mt-1">
+                </div>
+
                 <div>
                     <label class="text-xs font-medium text-slate-300 ml-1">Твоё имя</label>
-                    <input type="text" id="username" placeholder="Например: Иван" 
-                        class="w-full bg-slate-950/60 border border-white/10 rounded-2xl p-3.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all mt-1">
+                    <input type="text" id="reg-name" placeholder="Например: Иван" required
+                        class="w-full bg-slate-950 border border-slate-800 rounded-2xl p-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-all mt-1">
                 </div>
 
                 <div>
-                    <label class="text-xs font-medium text-slate-300 ml-1">Номер или название комнаты</label>
-                    <input type="text" id="room" placeholder="Например: 777" 
-                        class="w-full bg-slate-950/60 border border-white/10 rounded-2xl p-3.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all mt-1">
+                    <label class="text-xs font-medium text-slate-300 ml-1">Придумай пароль</label>
+                    <input type="password" id="reg-password" placeholder="Пароль" required
+                        class="w-full bg-slate-950 border border-slate-800 rounded-2xl p-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-all mt-1">
                 </div>
 
-                <button id="join-btn" 
-                    class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.98] font-semibold p-3.5 rounded-2xl transition shadow-lg shadow-blue-500/20 text-sm flex items-center justify-center gap-2">
-                    <span>Войти в комнату</span>
-                </button>
-            </div>
-        </div>
-
-        <div id="chat-block" class="hidden space-y-4 animate-fade-in">
-            <div class="flex justify-between items-center border-b border-white/10 pb-3">
-                <div class="flex items-center gap-3">
-                    <div id="my-avatar" class="w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-sm shadow-md">?</div>
-                    <div>
-                        <h2 class="font-bold text-sm text-white" id="room-display">Комната: -</h2>
-                        <p class="text-xs text-slate-300" id="user-display">Вы: -</p>
-                    </div>
+                <div id="login-status" class="hidden text-xs text-center p-2 rounded-xl bg-blue-500/20 text-blue-300 border border-blue-500/30 animate-pulse">
+                    Проверка ID...
                 </div>
-                <div class="flex items-center gap-2">
-                    <button type="button" id="test-sound-btn" title="Проверить звук" class="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 transition active:scale-95 text-xs flex items-center gap-1">
-                        🔊 <span class="hidden sm:inline text-[10px]">Тест</span>
-                    </button>
-                    <span class="text-[11px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-full font-medium flex items-center gap-1.5">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> В сети
-                    </span>
-                </div>
-            </div>
 
-            <div>
-                <p class="text-[11px] text-slate-300 mb-1.5 font-medium">Участники рядом:</p>
-                <div id="users-list" class="flex flex-wrap gap-1.5"></div>
-            </div>
-
-            <div id="messages" class="h-72 bg-slate-950/40 rounded-2xl p-3 overflow-y-auto space-y-2 border border-white/5 text-sm scroll-smooth"></div>
-
-            <form id="msg-form" class="flex gap-1.5 items-center">
-                <!-- Скрытый инпут для выбора фото -->
-                <input type="file" id="image-input" accept="image/*" class="hidden">
-
-                <!-- Кнопка скрепки (отправка фото) -->
-                <button type="button" id="attach-btn" title="Отправить фото"
-                    class="bg-slate-900/80 hover:bg-slate-800 active:scale-95 text-slate-300 hover:text-blue-400 p-2.5 rounded-2xl transition border border-white/10 flex items-center justify-center shrink-0 shadow-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 -rotate-45" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
-                    </svg>
-                </button>
-
-                <input type="text" id="msg-input" placeholder="Напиши сообщение..." autocomplete="off" 
-                    class="min-w-0 flex-1 bg-slate-950/60 border border-white/10 rounded-2xl px-3.5 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all">
-                
-                <!-- Кнопка микрофона -->
-                <button type="button" id="mic-btn" title="Голосовое сообщение"
-                    class="bg-slate-900/80 hover:bg-slate-800 active:scale-95 text-slate-300 hover:text-red-400 p-2.5 rounded-2xl transition border border-white/10 flex items-center justify-center shrink-0 shadow-sm">
-                    <svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
-                    <span id="rec-timer" class="hidden text-xs font-bold text-red-400 ml-1">00:00</span>
-                </button>
-
-                <!-- Кнопка отправки текста -->
-                <button type="submit" title="Отправить"
-                    class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white p-2.5 rounded-2xl transition shadow-md shadow-blue-600/20 flex items-center justify-center shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                <button type="submit" 
+                    class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.98] font-semibold p-3.5 rounded-2xl transition text-sm text-white shadow-lg shadow-blue-600/20 mt-2">
+                    Зарегистрироваться
                 </button>
             </form>
         </div>
-
     </div>
 
-    <!-- Модальное окно для просмотра фото в полный размер -->
-    <div id="image-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4 cursor-pointer" onclick="closeImageModal()">
+    <!-- Главный экран -->
+    <div id="app-container" class="hidden w-full h-full flex flex-col md:flex-row overflow-hidden inset-0 absolute">
+        
+        <!-- Левая панель: профиль и контакты -->
+        <aside id="sidebar" class="w-full md:w-80 lg:w-96 bg-slate-900 dark:bg-slate-900 border-r border-slate-800 flex flex-col h-full shrink-0 transition-all">
+            <!-- Профиль -->
+            <div class="p-3.5 border-b border-slate-800 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div id="my-avatar" class="w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-sm shadow-md shrink-0 bg-blue-600 overflow-hidden bg-cover bg-center">?</div>
+                    <div class="min-w-0">
+                        <h2 class="font-bold text-sm text-slate-100 dark:text-white truncate leading-tight" id="my-name-display">-</h2>
+                        <p class="text-[11px] text-blue-400 font-mono truncate" id="my-id-display">ID: -</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <button type="button" id="settings-btn" title="Настройки" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition active:scale-90 text-sm">
+                        ⚙️
+                    </button>
+                    <button type="button" id="logout-btn" title="Выйти из аккаунта" class="p-2 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-800/40 text-red-300 transition active:scale-90 text-sm">
+                        🚪
+                    </button>
+                </div>
+            </div>
+
+            <!-- Добавить друга / комнату -->
+            <div class="p-2.5 border-b border-slate-800 flex gap-2 shrink-0">
+                <button id="add-friend-btn" type="button" class="flex-1 bg-blue-600/10 hover:bg-blue-600/20 active:scale-95 border border-blue-500/30 text-blue-400 py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+                    <span>+ Друг</span>
+                </button>
+                <button id="join-room-btn" type="button" class="flex-1 bg-purple-600/10 hover:bg-purple-600/20 active:scale-95 border border-purple-500/30 text-purple-400 py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                    <span>+ Комната</span>
+                </button>
+            </div>
+
+            <!-- Список контактов -->
+            <div class="flex-1 overflow-y-auto p-2 space-y-1" id="chats-list"></div>
+        </aside>
+
+        <!-- Чат -->
+        <main id="chat-area" class="hidden md:flex flex-1 flex-col h-full bg-slate-950 dark:bg-slate-950 relative overflow-hidden">
+            <!-- Шапка чата -->
+            <div id="chat-header" class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 shrink-0">
+                <div class="flex items-center gap-3 min-w-0">
+                    <button id="back-to-sidebar-btn" type="button" class="md:hidden p-1.5 text-slate-300 hover:text-white text-xl font-bold active:scale-90 transition">
+                        ←
+                    </button>
+                    <div id="active-avatar" class="w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-sm shadow-md shrink-0 bg-blue-600 overflow-hidden bg-cover bg-center">💬</div>
+                    <div class="min-w-0">
+                        <h2 class="font-bold text-base text-slate-100 dark:text-white truncate leading-tight" id="active-chat-title">Выбери чат</h2>
+                        <p class="text-xs text-slate-400 truncate" id="active-chat-subtitle">Нажми на друга или комнату слева</p>
+                    </div>
+                </div>
+
+                <div id="room-users-container" class="hidden flex items-center gap-2 shrink-0">
+                    <span class="text-xs text-slate-400 hidden sm:inline">Рядом:</span>
+                    <div id="users-list" class="flex flex-wrap gap-1"></div>
+                </div>
+            </div>
+
+            <!-- Сообщения -->
+            <div id="messages" class="flex-1 p-4 overflow-y-auto space-y-3 scroll-smooth">
+                <div id="no-chat-placeholder" class="h-full flex flex-col items-center justify-center text-slate-500 text-sm gap-2">
+                    <span class="text-4xl animate-bounce">💬</span>
+                    <span>Выбери чат слева, чтобы начать писать</span>
+                </div>
+            </div>
+
+            <!-- Поле ввода сообщений снизу -->
+            <div id="input-container" class="p-2.5 border-t border-slate-800 bg-slate-900 shrink-0">
+                <form id="msg-form" class="flex gap-2 items-center max-w-5xl mx-auto">
+                    <input type="file" id="file-input" class="hidden">
+
+                    <button type="button" id="attach-btn" title="Отправить файл"
+                        class="bg-slate-800 hover:bg-slate-700 active:scale-90 text-slate-300 hover:text-blue-400 p-2.5 rounded-2xl transition border border-slate-700 flex items-center justify-center shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 -rotate-45" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                        </svg>
+                    </button>
+
+                    <input type="text" id="msg-input" placeholder="Напиши сообщение..." autocomplete="off" 
+                        class="min-w-0 flex-1 bg-slate-950 border border-slate-800 rounded-2xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition">
+                    
+                    <button type="button" id="mic-btn" title="Голосовое сообщение"
+                        class="bg-slate-800 hover:bg-slate-700 active:scale-90 text-slate-300 hover:text-red-400 p-2.5 rounded-2xl transition border border-slate-700 flex items-center justify-center shrink-0">
+                        <svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+                        <span id="rec-timer" class="hidden text-xs font-bold text-red-400 ml-1">00:00</span>
+                    </button>
+
+                    <button type="submit" title="Отправить"
+                        class="bg-blue-600 hover:bg-blue-500 active:scale-90 text-white p-2.5 rounded-2xl transition shadow-md shadow-blue-600/30 flex items-center justify-center shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                    </button>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <!-- Настройки -->
+    <div id="settings-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md hidden">
+        <div class="w-full max-w-sm bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-2xl space-y-5 animate-fade-in">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="font-bold text-base text-white">Настройки профиля</h3>
+                <button type="button" id="close-settings-btn" class="text-slate-400 hover:text-white text-lg">✕</button>
+            </div>
+
+            <!-- Темы -->
+            <div class="space-y-2">
+                <label class="text-xs font-medium text-slate-300">Тема оформления</label>
+                <div class="flex gap-2">
+                    <button type="button" id="theme-dark-btn" class="flex-1 py-2 px-3 rounded-xl border border-blue-500/50 bg-blue-600/20 text-xs font-semibold text-blue-300">
+                        🌙 Тёмная
+                    </button>
+                    <button type="button" id="theme-light-btn" class="flex-1 py-2 px-3 rounded-xl border border-slate-700 bg-slate-800 text-xs font-semibold text-slate-300">
+                        ☀️ Светлая
+                    </button>
+                </div>
+            </div>
+
+            <!-- Аватарка -->
+            <div class="space-y-2">
+                <label class="text-xs font-medium text-slate-300">Аватарка профиля</label>
+                <input type="file" id="avatar-input" accept="image/*" class="hidden">
+                <button type="button" id="upload-avatar-btn" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2.5 rounded-xl text-xs text-slate-200 font-medium flex items-center justify-center gap-2">
+                    🖼️ Загрузить своё фото
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Просмотр фото -->
+    <div id="image-modal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4 cursor-pointer" onclick="closeImageModal()">
         <img id="modal-img" class="max-w-full max-h-[90vh] rounded-2xl shadow-2xl border border-white/10 object-contain">
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const video = document.getElementById('bg-video');
-            if (video) { video.muted = true; video.play().catch(() => {}); }
-        });
-
         function censorText(text) {
             const badWordsPatterns = [
                 /хуй[яиеюаммиыовлдезс]?/gi, /пизд[аеыоуияюаммивлдезс]?/gi,
@@ -156,7 +280,6 @@
         }
 
         const notifyAudio = new Audio('./notification.mp3');
-
         function playNotificationSound() {
             notifyAudio.currentTime = 0;
             notifyAudio.play().catch(() => playFallbackSound());
@@ -183,11 +306,6 @@
             } catch (e) {}
         }
 
-        document.getElementById('test-sound-btn').onclick = () => playNotificationSound();
-
-        let client, myName, myRoom, myId = Math.random().toString(36).substring(7);
-        let users = new Map();
-
         const avatarColors = [
             'bg-red-500 text-white', 'bg-orange-500 text-white', 'bg-amber-500 text-white',
             'bg-emerald-500 text-white', 'bg-teal-500 text-white', 'bg-cyan-500 text-white',
@@ -201,154 +319,504 @@
             return avatarColors[Math.abs(hash) % avatarColors.length];
         }
 
-        document.getElementById('join-btn').onclick = () => {
-            myName = document.getElementById('username').value.trim();
-            myRoom = document.getElementById('room').value.trim();
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Б';
+            const k = 1024;
+            const sizes = ['Б', 'КБ', 'МБ', 'ГБ'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
 
-            if (!myName || !myRoom) return alert('Заполни имя и номер комнаты!');
+        let client;
+        let myName = '';
+        let myId = '';
+        let myCustomAvatar = null;
+        let currentChat = null;
+        let friends = [];
+        let rooms = [];
+        let onlineUsers = new Map();
 
-            document.getElementById('login-block').classList.add('hidden');
-            document.getElementById('chat-block').classList.remove('hidden');
-            document.getElementById('room-display').textContent = 'Комната: ' + myRoom;
-            document.getElementById('user-display').textContent = 'Вы: ' + myName;
+        // Управление вкладками авторизации
+        const tabLogin = document.getElementById('tab-login');
+        const tabRegister = document.getElementById('tab-register');
+        const formLogin = document.getElementById('form-login');
+        const formRegister = document.getElementById('form-register');
 
-            const myAvatar = document.getElementById('my-avatar');
-            myAvatar.textContent = myName.charAt(0).toUpperCase();
-            myAvatar.className = `w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-base shadow-lg ${getColorForName(myName)}`;
+        tabLogin.onclick = () => {
+            tabLogin.className = 'flex-1 py-2 rounded-xl text-xs font-bold transition bg-blue-600 text-white shadow-md';
+            tabRegister.className = 'flex-1 py-2 rounded-xl text-xs font-bold transition text-slate-400 hover:text-white';
+            formLogin.classList.remove('hidden');
+            formRegister.classList.add('hidden');
+        };
 
-            loadHistory();
+        tabRegister.onclick = () => {
+            tabRegister.className = 'flex-1 py-2 rounded-xl text-xs font-bold transition bg-blue-600 text-white shadow-md';
+            tabLogin.className = 'flex-1 py-2 rounded-xl text-xs font-bold transition text-slate-400 hover:text-white';
+            formRegister.classList.remove('hidden');
+            formLogin.classList.add('hidden');
+        };
 
+        // Вход в аккаунт
+        formLogin.onsubmit = (e) => {
+            e.preventDefault();
+            const id = document.getElementById('login-id').value.trim().toLowerCase();
+            const password = document.getElementById('login-password').value;
+
+            const userDataRaw = localStorage.getItem('user_account_' + id);
+            if (!userDataRaw) {
+                return alert('Пользователь с таким ID не найден! Зарегистрируйтесь.');
+            }
+
+            const userData = JSON.parse(userDataRaw);
+            if (userData.password !== password) {
+                return alert('Неверный пароль!');
+            }
+
+            // Авторизация успешна
+            myName = userData.name;
+            myId = userData.id;
+            myCustomAvatar = userData.avatar || null;
+
+            startMessengerSession();
+        };
+
+        // Регистрация аккаунта
+        formRegister.onsubmit = (e) => {
+            e.preventDefault();
+            const id = document.getElementById('reg-id').value.trim().toLowerCase();
+            const name = document.getElementById('reg-name').value.trim();
+            const password = document.getElementById('reg-password').value;
+            const statusDiv = document.getElementById('login-status');
+
+            if (localStorage.getItem('user_account_' + id)) {
+                return alert('Этот ID уже зарегистрирован на этом устройстве!');
+            }
+
+            statusDiv.classList.remove('hidden');
+            statusDiv.textContent = 'Проверка уникальности ID в сети...';
+
+            const tempClient = mqtt.connect('wss://broker.hivemq.com:8884/mqtt');
+            let isTaken = false;
+
+            tempClient.on('connect', () => {
+                tempClient.subscribe('check_response_' + id);
+                tempClient.publish('check_id_' + id, JSON.stringify({ action: 'ping' }));
+
+                tempClient.on('message', (topic, msg) => {
+                    const data = JSON.parse(msg.toString());
+                    if (data.action === 'pong') isTaken = true;
+                });
+
+                setTimeout(() => {
+                    tempClient.end();
+
+                    if (isTaken) {
+                        statusDiv.classList.add('hidden');
+                        alert('❌ Этот ID уже занят другим пользователем в сети!');
+                    } else {
+                        // Сохраняем учетку
+                        const userAccount = { id, name, password, avatar: null };
+                        localStorage.setItem('user_account_' + id, JSON.stringify(userAccount));
+
+                        myName = name;
+                        myId = id;
+                        myCustomAvatar = null;
+
+                        startMessengerSession();
+                    }
+                }, 800);
+            });
+        };
+
+        function startMessengerSession() {
+            document.getElementById('login-modal').classList.add('hidden');
+            document.getElementById('app-container').classList.remove('hidden');
+
+            document.getElementById('my-name-display').textContent = myName;
+            document.getElementById('my-id-display').textContent = '@' + myId;
+
+            updateMyAvatarUI();
+            loadContacts();
+            connectMQTT();
+        }
+
+        // Выход из аккаунта
+        document.getElementById('logout-btn').onclick = () => {
+            if (confirm('Выйти из аккаунта?')) {
+                location.reload();
+            }
+        };
+
+        function updateMyAvatarUI() {
+            const avatar = document.getElementById('my-avatar');
+            if (myCustomAvatar) {
+                avatar.style.backgroundImage = `url(${myCustomAvatar})`;
+                avatar.textContent = '';
+                avatar.className = `w-10 h-10 rounded-2xl shadow-md shrink-0 overflow-hidden bg-cover bg-center`;
+            } else {
+                avatar.style.backgroundImage = '';
+                avatar.textContent = myName.charAt(0).toUpperCase();
+                avatar.className = `w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-sm shadow-md shrink-0 ${getColorForName(myName)}`;
+            }
+        }
+
+        function connectMQTT() {
             client = mqtt.connect('wss://broker.hivemq.com:8884/mqtt');
 
             client.on('connect', () => {
-                client.subscribe('my_custom_room_' + myRoom);
+                client.subscribe('direct_msg_' + myId);
+                client.subscribe('check_id_' + myId);
+
                 setInterval(() => {
-                    client.publish('my_custom_room_' + myRoom, JSON.stringify({ type: 'ping', id: myId, name: myName }));
-                    cleanUsers();
+                    if (currentChat && currentChat.type === 'room') {
+                        client.publish('custom_room_' + currentChat.id, JSON.stringify({ type: 'ping', id: myId, name: myName }));
+                        cleanUsers();
+                    }
                 }, 2000);
             });
 
             client.on('message', (topic, msg) => {
                 let data = JSON.parse(msg.toString());
-                if (data.type === 'ping') {
-                    users.set(data.id, { name: data.name, time: Date.now() });
-                    renderUsers();
-                }
-                if (data.id !== myId) {
-                    if (data.type === 'text') {
-                        saveAndAddMessage(data.name, data.text, false, 'text');
-                        playNotificationSound();
-                    }
-                    if (data.type === 'audio') {
-                        saveAndAddMessage(data.name, data.audio, false, 'audio');
-                        playNotificationSound();
-                    }
-                    if (data.type === 'image') {
-                        saveAndAddMessage(data.name, data.image, false, 'image');
-                        playNotificationSound();
-                    }
-                }
-            });
-        };
 
-        function getStorageKey() {
-            return 'chat_history_room_' + myRoom;
-        }
-
-        function loadHistory() {
-            let box = document.getElementById('messages');
-            box.innerHTML = '';
-            try {
-                let rawData = localStorage.getItem(getStorageKey());
-                if (!rawData) return;
-                let data = JSON.parse(rawData);
-                
-                if (Date.now() - data.timestamp > 24 * 60 * 60 * 1000) {
-                    localStorage.removeItem(getStorageKey());
+                if (topic === 'check_id_' + myId && data.action === 'ping') {
+                    client.publish('check_response_' + myId, JSON.stringify({ action: 'pong' }));
                     return;
                 }
 
-                data.messages.forEach(m => {
-                    renderMessageDOM(m.author, m.content, m.isMe, m.type, false);
+                if (topic.startsWith('custom_room_')) {
+                    if (data.type === 'ping') {
+                        onlineUsers.set(data.id, { name: data.name, time: Date.now() });
+                        renderUsers();
+                        return;
+                    }
+
+                    if (data.senderId !== myId && currentChat && currentChat.id === topic.replace('custom_room_', '')) {
+                        saveAndAddMessage(currentChat.id, data.senderName, data.content, false, data.msgType, data.avatar, data.fileName, data.fileSize);
+                        playNotificationSound();
+                    }
+                }
+
+                if (topic === 'direct_msg_' + myId) {
+                    if (!friends.some(f => f.id === data.senderId)) {
+                        friends.push({ id: data.senderId, name: data.senderName, avatar: data.avatar });
+                        saveContacts();
+                        renderSidebarChats();
+                    }
+
+                    saveMessageToStorage(data.senderId, data.senderName, data.content, false, data.msgType, data.avatar, data.fileName, data.fileSize);
+
+                    if (currentChat && currentChat.id === data.senderId && currentChat.type === 'direct') {
+                        renderMessageDOM(data.senderName, data.content, false, data.msgType, data.avatar, data.fileName, data.fileSize, true);
+                    }
+                    playNotificationSound();
+                }
+            });
+        }
+
+        // Добавить друга
+        document.getElementById('add-friend-btn').onclick = () => {
+            const friendId = prompt('Введи личный ID друга:');
+            if (!friendId) return;
+            const cleanId = friendId.trim().toLowerCase();
+            if (cleanId === myId) return alert('Нельзя добавить самого себя!');
+
+            const friendName = prompt('Имя друга для отображения:') || cleanId;
+
+            if (!friends.some(f => f.id === cleanId)) {
+                friends.push({ id: cleanId, name: friendName });
+                saveContacts();
+                renderSidebarChats();
+                openChat(cleanId, friendName, 'direct');
+            } else {
+                alert('Этот друг уже добавлен!');
+            }
+        };
+
+        // Создать комнату
+        document.getElementById('join-room-btn').onclick = () => {
+            const roomId = prompt('Введи название или номер комнаты:');
+            if (!roomId) return;
+            const cleanRoom = roomId.trim();
+
+            if (!rooms.some(r => r.id === cleanRoom)) {
+                rooms.push({ id: cleanRoom, name: 'Комната: ' + cleanRoom });
+                saveContacts();
+                renderSidebarChats();
+            }
+            openChat(cleanRoom, 'Комната: ' + cleanRoom, 'room');
+        };
+
+        function saveContacts() {
+            localStorage.setItem('chat_friends_' + myId, JSON.stringify(friends));
+            localStorage.setItem('chat_rooms_' + myId, JSON.stringify(rooms));
+        }
+
+        function loadContacts() {
+            try {
+                friends = JSON.parse(localStorage.getItem('chat_friends_' + myId)) || [];
+                rooms = JSON.parse(localStorage.getItem('chat_rooms_' + myId)) || [];
+            } catch (e) {
+                friends = [];
+                rooms = [];
+            }
+            renderSidebarChats();
+        }
+
+        function renderSidebarChats() {
+            const container = document.getElementById('chats-list');
+            container.innerHTML = '';
+
+            if (friends.length > 0) {
+                const friendHeader = document.createElement('div');
+                friendHeader.className = 'text-[11px] font-bold text-slate-400 px-3 py-1 uppercase tracking-wider';
+                friendHeader.textContent = 'Друзья (ЛС)';
+                container.appendChild(friendHeader);
+
+                friends.forEach(f => {
+                    const el = document.createElement('div');
+                    const isActive = currentChat && currentChat.id === f.id && currentChat.type === 'direct';
+                    el.className = `p-3 rounded-2xl flex items-center gap-3 cursor-pointer transition active:scale-[0.98] ${isActive ? 'bg-blue-600/20 border border-blue-500/40' : 'hover:bg-slate-800/50 border border-transparent'}`;
+                    el.onclick = () => openChat(f.id, f.name, 'direct');
+
+                    const color = getColorForName(f.name);
+                    el.innerHTML = `
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs ${color} shrink-0">${f.name.charAt(0).toUpperCase()}</div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-sm font-semibold text-slate-100 dark:text-white truncate leading-tight">${escapeHTML(f.name)}</h3>
+                            <p class="text-[11px] text-slate-400 truncate">@${escapeHTML(f.id)}</p>
+                        </div>
+                    `;
+                    container.appendChild(el);
                 });
+            }
+
+            if (rooms.length > 0) {
+                const roomHeader = document.createElement('div');
+                roomHeader.className = 'text-[11px] font-bold text-slate-400 px-3 py-1 uppercase tracking-wider mt-2';
+                roomHeader.textContent = 'Комнаты';
+                container.appendChild(roomHeader);
+
+                rooms.forEach(r => {
+                    const el = document.createElement('div');
+                    const isActive = currentChat && currentChat.id === r.id && currentChat.type === 'room';
+                    el.className = `p-3 rounded-2xl flex items-center gap-3 cursor-pointer transition active:scale-[0.98] ${isActive ? 'bg-purple-600/20 border border-purple-500/40' : 'hover:bg-slate-800/50 border border-transparent'}`;
+                    el.onclick = () => openChat(r.id, r.name, 'room');
+
+                    el.innerHTML = `
+                        <div class="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-xs text-purple-400 shrink-0">#</div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-sm font-semibold text-slate-100 dark:text-white truncate leading-tight">${escapeHTML(r.name)}</h3>
+                            <p class="text-[11px] text-slate-400 truncate">Групповой чат</p>
+                        </div>
+                    `;
+                    container.appendChild(el);
+                });
+            }
+
+            if (friends.length === 0 && rooms.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-slate-500 text-xs p-6 flex flex-col items-center gap-2">
+                        <span class="text-2xl">💬</span>
+                        <span>У тебя пока нет контактов. Добавь друга выше!</span>
+                    </div>
+                `;
+            }
+        }
+
+        document.getElementById('back-to-sidebar-btn').onclick = () => {
+            document.getElementById('sidebar').classList.remove('hidden');
+            document.getElementById('chat-area').classList.add('hidden');
+            document.getElementById('chat-area').classList.remove('flex');
+        };
+
+        function openChat(id, name, type) {
+            if (currentChat && currentChat.type === 'room') {
+                client.unsubscribe('custom_room_' + currentChat.id);
+            }
+
+            currentChat = { id, name, type };
+            renderSidebarChats();
+
+            document.getElementById('sidebar').classList.add('hidden');
+            document.getElementById('chat-area').classList.remove('hidden');
+            document.getElementById('chat-area').classList.add('flex');
+
+            document.getElementById('active-chat-title').textContent = name;
+            document.getElementById('active-chat-subtitle').textContent = type === 'direct' ? `@${id}` : `Комната: ${id}`;
+            
+            const avatar = document.getElementById('active-avatar');
+            avatar.textContent = type === 'direct' ? name.charAt(0).toUpperCase() : '#';
+            avatar.className = `w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-sm shadow-md ${type === 'direct' ? getColorForName(name) : 'bg-purple-600 text-white'}`;
+
+            const roomUsersContainer = document.getElementById('room-users-container');
+            if (type === 'room') {
+                roomUsersContainer.classList.remove('hidden');
+                client.subscribe('custom_room_' + id);
+            } else {
+                roomUsersContainer.classList.add('hidden');
+            }
+
+            loadChatHistory();
+        }
+
+        function getStorageKey(chatId, type) {
+            return `chat_history_${type}_${chatId}_${myId}`;
+        }
+
+        function loadChatHistory() {
+            const box = document.getElementById('messages');
+            box.innerHTML = '';
+            if (!currentChat) return;
+
+            const key = getStorageKey(currentChat.id, currentChat.type);
+            try {
+                const rawData = localStorage.getItem(key);
+                if (!rawData) return;
+                const data = JSON.parse(rawData);
+
+                data.messages.forEach(m => {
+                    renderMessageDOM(m.author, m.content, m.isMe, m.type, m.avatar, m.fileName, m.fileSize, false);
+                });
+                box.scrollTop = box.scrollHeight;
             } catch (e) {}
         }
 
-        function saveMessageToStorage(author, content, isMe, type) {
+        function saveMessageToStorage(chatId, author, content, isMe, type, avatar, fileName, fileSize) {
             try {
-                let key = getStorageKey();
-                let rawData = localStorage.getItem(key);
-                let chatData = rawData ? JSON.parse(rawData) : { timestamp: Date.now(), messages: [] };
-                
-                chatData.messages.push({ author, content, isMe, type });
-                if (chatData.messages.length > 150) chatData.messages.shift();
+                const key = getStorageKey(chatId, currentChat ? currentChat.type : 'direct');
+                const rawData = localStorage.getItem(key);
+                const chatData = rawData ? JSON.parse(rawData) : { timestamp: Date.now(), messages: [] };
+
+                chatData.messages.push({ author, content, isMe, type, avatar, fileName, fileSize });
+                if (chatData.messages.length > 200) chatData.messages.shift();
 
                 localStorage.setItem(key, JSON.stringify(chatData));
             } catch (e) {}
         }
 
-        function saveAndAddMessage(author, content, isMe, type) {
-            saveMessageToStorage(author, content, isMe, type);
-            renderMessageDOM(author, content, isMe, type, true);
+        function saveAndAddMessage(chatId, author, content, isMe, type, avatar, fileName, fileSize) {
+            saveMessageToStorage(chatId, author, content, isMe, type, avatar, fileName, fileSize);
+            if (currentChat && currentChat.id === chatId) {
+                renderMessageDOM(author, content, isMe, type, avatar, fileName, fileSize, true);
+            }
         }
 
+        // Отправка текста
         document.getElementById('msg-form').onsubmit = (e) => {
             e.preventDefault();
-            let input = document.getElementById('msg-input');
-            let text = input.value.trim();
+            if (!currentChat) return alert('Выбери чат из списка!');
+
+            const input = document.getElementById('msg-input');
+            const text = input.value.trim();
             if (!text) return;
 
-            client.publish('my_custom_room_' + myRoom, JSON.stringify({ type: 'text', id: myId, name: myName, text: text }));
-            saveAndAddMessage(myName, text, true, 'text');
+            const msgData = {
+                senderId: myId, senderName: myName, content: text, msgType: 'text', avatar: myCustomAvatar
+            };
+
+            if (currentChat.type === 'direct') {
+                client.publish('direct_msg_' + currentChat.id, JSON.stringify(msgData));
+            } else {
+                client.publish('custom_room_' + currentChat.id, JSON.stringify(msgData));
+            }
+
+            saveAndAddMessage(currentChat.id, myName, text, true, 'text', myCustomAvatar);
             input.value = '';
         };
 
+        // Отправка файлов
         const attachBtn = document.getElementById('attach-btn');
-        const imageInput = document.getElementById('image-input');
+        const fileInput = document.getElementById('file-input');
 
-        attachBtn.onclick = () => imageInput.click();
+        attachBtn.onclick = () => {
+            if (!currentChat) return alert('Выбери чат из списка!');
+            fileInput.click();
+        };
 
-        imageInput.onchange = (e) => {
+        fileInput.onchange = (e) => {
             const file = e.target.files[0];
-            if (!file) return;
+            if (!file || !currentChat) return;
+
+            if (file.size > 15 * 1024 * 1024) {
+                return alert('Файл слишком большой! Максимальный размер 15 МБ.');
+            }
+
+            const fileName = file.name;
+            const fileSize = file.size;
+            const mimeType = file.type;
 
             const reader = new FileReader();
             reader.onload = (event) => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width;
-                    let height = img.height;
-                    const MAX_WIDTH = 800;
-                    const MAX_HEIGHT = 800;
+                let msgType = 'file';
+                let content = event.target.result;
 
-                    if (width > height) {
-                        if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
-                    } else {
-                        if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
-                    }
+                if (mimeType.startsWith('image/')) {
+                    msgType = 'image';
+                } else if (mimeType.startsWith('video/')) {
+                    msgType = 'video';
+                } else if (mimeType.startsWith('audio/')) {
+                    msgType = 'audio';
+                }
 
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
+                if (msgType === 'image') {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        const MAX_WIDTH = 800;
+                        const MAX_HEIGHT = 800;
 
-                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);
+                        if (width > height) {
+                            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+                        } else {
+                            if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+                        }
 
-                    client.publish('my_custom_room_' + myRoom, JSON.stringify({ type: 'image', id: myId, name: myName, image: compressedBase64 }));
-                    saveAndAddMessage(myName, compressedBase64, true, 'image');
-                    imageInput.value = '';
-                };
-                img.src = event.target.result;
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);
+                        sendPayload(compressedBase64, 'image', fileName, fileSize);
+                    };
+                    img.src = content;
+                } else {
+                    sendPayload(content, msgType, fileName, fileSize);
+                }
+
+                fileInput.value = '';
             };
             reader.readAsDataURL(file);
         };
 
-        function renderMessageDOM(author, content, isMe, type, scrollDown = true) {
-            let box = document.getElementById('messages');
-            let div = document.createElement('div');
+        function sendPayload(content, msgType, fileName, fileSize) {
+            const msgData = {
+                senderId: myId, 
+                senderName: myName, 
+                content: content, 
+                msgType: msgType, 
+                avatar: myCustomAvatar,
+                fileName: fileName,
+                fileSize: fileSize
+            };
+
+            if (currentChat.type === 'direct') {
+                client.publish('direct_msg_' + currentChat.id, JSON.stringify(msgData));
+            } else {
+                client.publish('custom_room_' + currentChat.id, JSON.stringify(msgData));
+            }
+
+            saveAndAddMessage(currentChat.id, myName, content, true, msgType, myCustomAvatar, fileName, fileSize);
+        }
+
+        // Отрисовка сообщения
+        function renderMessageDOM(author, content, isMe, type, customAvatar, fileName, fileSize, scrollDown = true) {
+            const box = document.getElementById('messages');
+            const div = document.createElement('div');
             div.className = `flex gap-2.5 items-end animate-slide-up ${isMe ? 'flex-row-reverse' : 'flex-row'}`;
-            
+
             const firstLetter = author.charAt(0).toUpperCase();
             const avatarColor = getColorForName(author);
 
@@ -356,25 +824,51 @@
 
             if (type === 'text') {
                 const cleanText = censorText(content);
-                innerHTMLContent = `<div class="p-3 rounded-2xl text-xs break-words shadow-md ${isMe ? 'bg-blue-600 text-white rounded-br-xs' : 'bg-slate-800/80 border border-white/10 text-slate-100 rounded-bl-xs'}">${escapeHTML(cleanText)}</div>`;
+                innerHTMLContent = `<div class="p-3.5 rounded-2xl text-sm break-words shadow-md ${isMe ? 'bg-blue-600 text-white rounded-br-xs' : 'bg-slate-800 dark:bg-slate-800 border border-slate-700 text-slate-100 rounded-bl-xs'}">${escapeHTML(cleanText)}</div>`;
             } else if (type === 'audio') {
                 innerHTMLContent = `
-                    <div class="p-2.5 rounded-2xl shadow-md ${isMe ? 'bg-blue-600 text-white rounded-br-xs' : 'bg-slate-800/80 border border-white/10 text-slate-100 rounded-bl-xs'}">
-                        <audio controls class="h-8 w-48 rounded-lg max-w-full">
-                            <source src="${content}" type="audio/webm">
+                    <div class="p-2.5 rounded-2xl shadow-md ${isMe ? 'bg-blue-600 text-white rounded-br-xs' : 'bg-slate-800 border border-slate-700 text-slate-100 rounded-bl-xs'}">
+                        <audio controls class="h-8 w-52 sm:w-56 rounded-lg max-w-full">
+                            <source src="${content}">
                         </audio>
                     </div>`;
             } else if (type === 'image') {
                 innerHTMLContent = `
-                    <div class="p-1.5 rounded-2xl shadow-md bg-slate-900/80 border border-white/10 overflow-hidden">
-                        <img src="${content}" onclick="openImageModal('${content}')" class="w-44 h-auto rounded-xl cursor-pointer hover:opacity-95 transition object-cover">
+                    <div class="p-1.5 rounded-2xl shadow-md bg-slate-900 border border-slate-800 overflow-hidden">
+                        <img src="${content}" onclick="openImageModal('${content}')" class="max-w-xs max-h-64 h-auto rounded-xl cursor-pointer hover:opacity-95 transition object-cover">
+                    </div>`;
+            } else if (type === 'video') {
+                innerHTMLContent = `
+                    <div class="p-1.5 rounded-2xl shadow-md bg-slate-900 border border-slate-800 overflow-hidden">
+                        <video controls class="max-w-xs max-h-64 rounded-xl">
+                            <source src="${content}">
+                        </video>
+                    </div>`;
+            } else if (type === 'file') {
+                innerHTMLContent = `
+                    <div class="p-3 rounded-2xl shadow-md flex items-center gap-3 ${isMe ? 'bg-blue-600 text-white rounded-br-xs' : 'bg-slate-800 border border-slate-700 text-slate-100 rounded-bl-xs'}">
+                        <div class="w-10 h-10 bg-slate-950/40 rounded-xl flex items-center justify-center text-xl shrink-0">📄</div>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-xs font-semibold truncate leading-tight">${escapeHTML(fileName || 'Документ')}</p>
+                            <p class="text-[10px] opacity-80">${fileSize ? formatBytes(fileSize) : 'Файл'}</p>
+                        </div>
+                        <a href="${content}" download="${escapeHTML(fileName || 'file')}" class="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold transition active:scale-90 shrink-0">
+                            💾
+                        </a>
                     </div>`;
             }
 
+            let avatarHTML = '';
+            if (customAvatar) {
+                avatarHTML = `<div class="w-8 h-8 rounded-xl shrink-0 shadow-sm overflow-hidden bg-cover bg-center" style="background-image: url('${customAvatar}')"></div>`;
+            } else {
+                avatarHTML = `<div class="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${avatarColor} shadow-sm">${firstLetter}</div>`;
+            }
+
             div.innerHTML = `
-                <div class="w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${avatarColor} shadow-sm">${firstLetter}</div>
-                <div class="max-w-[78%] space-y-0.5">
-                    ${!isMe ? `<p class="text-[10px] text-slate-300 ml-1 font-medium">${escapeHTML(author)}</p>` : ''}
+                ${avatarHTML}
+                <div class="max-w-[75%] space-y-0.5">
+                    ${!isMe ? `<p class="text-[10px] text-slate-400 ml-1 font-medium">${escapeHTML(author)}</p>` : ''}
                     ${innerHTMLContent}
                 </div>
             `;
@@ -393,12 +887,70 @@
             document.getElementById('image-modal').classList.remove('flex');
         }
 
+        // Настройки
+        const settingsBtn = document.getElementById('settings-btn');
+        const settingsModal = document.getElementById('settings-modal');
+        const closeSettingsBtn = document.getElementById('close-settings-btn');
+
+        settingsBtn.onclick = () => settingsModal.classList.remove('hidden');
+        closeSettingsBtn.onclick = () => settingsModal.classList.add('hidden');
+
+        // Переключение тем
+        const themeDarkBtn = document.getElementById('theme-dark-btn');
+        const themeLightBtn = document.getElementById('theme-light-btn');
+        const appBody = document.getElementById('app-body');
+
+        themeDarkBtn.onclick = () => {
+            appBody.classList.add('dark');
+            appBody.classList.replace('bg-slate-100', 'bg-slate-950');
+            themeDarkBtn.className = 'flex-1 py-2 px-3 rounded-xl border border-blue-500/50 bg-blue-600/20 text-xs font-semibold text-blue-300';
+            themeLightBtn.className = 'flex-1 py-2 px-3 rounded-xl border border-slate-700 bg-slate-800 text-xs font-semibold text-slate-300';
+        };
+
+        themeLightBtn.onclick = () => {
+            appBody.classList.remove('dark');
+            appBody.classList.replace('bg-slate-950', 'bg-slate-100');
+            themeLightBtn.className = 'flex-1 py-2 px-3 rounded-xl border border-blue-500/50 bg-blue-600/20 text-xs font-semibold text-blue-500';
+            themeDarkBtn.className = 'flex-1 py-2 px-3 rounded-xl border border-slate-300 bg-slate-200 text-xs font-semibold text-slate-700';
+        };
+
+        // Загрузка аватарки
+        const uploadAvatarBtn = document.getElementById('upload-avatar-btn');
+        const avatarInput = document.getElementById('avatar-input');
+
+        uploadAvatarBtn.onclick = () => avatarInput.click();
+
+        avatarInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                myCustomAvatar = event.target.result;
+                updateMyAvatarUI();
+
+                // Обновляем аватарку в аккаунте
+                const userDataRaw = localStorage.getItem('user_account_' + myId);
+                if (userDataRaw) {
+                    const userData = JSON.parse(userDataRaw);
+                    userData.avatar = myCustomAvatar;
+                    localStorage.setItem('user_account_' + myId, JSON.stringify(userData));
+                }
+
+                alert('Аватарка успешно обновлена!');
+            };
+            reader.readAsDataURL(file);
+        };
+
+        // Запись голосовых
         let mediaRecorder, audioChunks = [], isRecording = false, recTimerInterval, seconds = 0;
         const micBtn = document.getElementById('mic-btn');
         const recTimer = document.getElementById('rec-timer');
         const micIcon = document.getElementById('mic-icon');
 
         micBtn.onclick = async () => {
+            if (!currentChat) return alert('Выбери чат из списка!');
+
             if (!isRecording) {
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -413,15 +965,14 @@
                         reader.readAsDataURL(audioBlob);
                         reader.onloadend = () => {
                             const base64Audio = reader.result;
-                            client.publish('my_custom_room_' + myRoom, JSON.stringify({ type: 'audio', id: myId, name: myName, audio: base64Audio }));
-                            saveAndAddMessage(myName, base64Audio, true, 'audio');
+                            sendPayload(base64Audio, 'audio', 'Голосовое сообщение.webm', audioBlob.size);
                         };
                         stream.getTracks().forEach(track => track.stop());
                     };
 
                     mediaRecorder.start();
                     isRecording = true;
-                    micBtn.classList.replace('bg-slate-900/80', 'bg-red-600');
+                    micBtn.classList.replace('bg-slate-800', 'bg-red-600');
                     micBtn.classList.add('animate-pulse');
                     micIcon.classList.add('hidden');
                     recTimer.classList.remove('hidden');
@@ -441,7 +992,7 @@
             } else {
                 mediaRecorder.stop();
                 isRecording = false;
-                micBtn.classList.replace('bg-red-600', 'bg-slate-900/80');
+                micBtn.classList.replace('bg-red-600', 'bg-slate-800');
                 micBtn.classList.remove('animate-pulse');
                 recTimer.classList.add('hidden');
                 micIcon.classList.remove('hidden');
@@ -450,22 +1001,22 @@
         };
 
         function renderUsers() {
-            let container = document.getElementById('users-list');
+            const container = document.getElementById('users-list');
             container.innerHTML = '';
-            users.forEach(u => {
-                let badge = document.createElement('div');
+            onlineUsers.forEach(u => {
+                const badge = document.createElement('div');
                 const firstLetter = u.name.charAt(0).toUpperCase();
                 const avatarColor = getColorForName(u.name);
 
-                badge.className = 'flex items-center gap-1.5 bg-slate-950/60 border border-white/10 px-2.5 py-1 rounded-xl text-xs text-slate-200 animate-fade-in';
-                badge.innerHTML = `<span class="w-4 h-4 rounded-lg flex items-center justify-center text-[9px] font-bold ${avatarColor}">${firstLetter}</span><span>${escapeHTML(u.name)}</span>`;
+                badge.className = 'flex items-center gap-1 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-lg text-[11px] text-slate-200 animate-fade-in';
+                badge.innerHTML = `<span class="w-3.5 h-3.5 rounded-md flex items-center justify-center text-[8px] font-bold ${avatarColor}">${firstLetter}</span><span>${escapeHTML(u.name)}</span>`;
                 container.appendChild(badge);
             });
         }
 
         function cleanUsers() {
-            let now = Date.now();
-            users.forEach((u, id) => { if (now - u.time > 5000) users.delete(id); });
+            const now = Date.now();
+            onlineUsers.forEach((u, id) => { if (now - u.time > 5000) onlineUsers.delete(id); });
             renderUsers();
         }
 
