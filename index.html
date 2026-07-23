@@ -64,6 +64,9 @@
 </head>
 <body id="app-body" class="dark bg-slate-950 text-slate-100 font-sans select-none overflow-hidden h-full w-full">
 
+    <!-- Тег для звука входящего звонка -->
+    <audio id="remote-audio-player" autoplay playsinline class="hidden"></audio>
+
     <!-- Окно авторизации (Регистрация / Вход) -->
     <div id="login-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
         <div class="w-full max-w-md bg-slate-900 border border-slate-800 p-7 rounded-3xl shadow-2xl animate-fade-in space-y-5">
@@ -254,11 +257,9 @@
                 <p id="call-type-label" class="text-xs text-blue-400 mt-0.5">Входящий вызов...</p>
             </div>
             <div class="flex gap-6 justify-center pt-2">
-                <!-- Кнопка Отклонить -->
                 <button id="reject-call-btn" type="button" title="Отклонить" class="w-16 h-16 rounded-full bg-red-600 hover:bg-red-500 active:scale-90 text-white flex items-center justify-center shadow-lg shadow-red-600/30 transition">
                     <svg class="w-7 h-7 rotate-[135deg]" fill="currentColor" viewBox="0 0 24 24"><path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2a1.003 1.003 0 011.02-.24c1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
                 </button>
-                <!-- Кнопка Принять -->
                 <button id="accept-call-btn" type="button" title="Ответить" class="w-16 h-16 rounded-full bg-emerald-500 hover:bg-emerald-400 active:scale-90 text-white flex items-center justify-center shadow-lg shadow-emerald-500/40 transition animate-call-pulse">
                     <svg class="w-7 h-7" fill="currentColor" viewBox="0 0 24 24"><path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2a1.003 1.003 0 011.02-.24c1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
                 </button>
@@ -268,25 +269,20 @@
 
     <!-- Окно Звонка (Видео / Голос) -->
     <div id="active-call-modal" class="fixed inset-0 z-50 bg-slate-950 flex flex-col hidden">
-        <!-- Главное видео (Собеседника) -->
         <div class="relative flex-1 w-full h-full bg-black flex items-center justify-center overflow-hidden">
             <video id="remote-video" autoplay playsinline class="w-full h-full object-cover"></video>
-            <audio id="remote-audio" autoplay class="hidden"></audio>
 
-            <!-- Плейсхолдер если нет видео -->
             <div id="no-remote-video" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 text-white space-y-3">
                 <div id="active-call-avatar" class="w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center text-3xl font-bold shadow-2xl overflow-hidden bg-cover bg-center">?</div>
                 <h2 id="active-call-name" class="font-bold text-xl">Собеседник</h2>
-                <p id="call-status-timer" class="text-xs text-emerald-400 font-mono">Вызов...</p>
+                <p id="call-status-timer" class="text-xs text-emerald-400 font-mono">Соединение...</p>
             </div>
 
-            <!-- Маленькое видео (Моё) -->
             <div class="absolute bottom-20 right-4 w-32 h-44 bg-slate-800 border-2 border-white/20 rounded-2xl overflow-hidden shadow-2xl z-10">
                 <video id="local-video" autoplay playsinline muted class="w-full h-full object-cover"></video>
             </div>
         </div>
 
-        <!-- Кнопки управления звонком -->
         <div class="p-6 bg-slate-900/90 backdrop-blur-md border-t border-slate-800 flex justify-center items-center gap-6 shrink-0 z-20">
             <button id="toggle-mic-btn" type="button" title="Микрофон" class="w-12 h-12 rounded-2xl bg-slate-800 hover:bg-slate-700 active:scale-90 text-white flex items-center justify-center text-xl transition">
                 🎙️
@@ -308,7 +304,6 @@
                 <button type="button" id="close-settings-btn" class="text-slate-400 hover:text-white text-lg">✕</button>
             </div>
 
-            <!-- Темы -->
             <div class="space-y-2">
                 <label class="text-xs font-medium text-slate-300">Тема оформления</label>
                 <div class="flex gap-2">
@@ -321,7 +316,6 @@
                 </div>
             </div>
 
-            <!-- Аватарка -->
             <div class="space-y-2">
                 <label class="text-xs font-medium text-slate-300">Аватарка профиля</label>
                 <input type="file" id="avatar-input" accept="image/*" class="hidden">
@@ -387,7 +381,6 @@
         let outgoingToneInterval = null;
         let ringAudioCtx = null;
 
-        // Запуск музыки входящего звонка (sound.mp3 или генерируемый звонок)
         function startRingtone() {
             ringtoneAudio.currentTime = 0;
             ringtoneAudio.play().catch(() => {
@@ -402,12 +395,11 @@
             stopOutgoingTone();
         }
 
-        // Генерируемый рингтон если sound.mp3 отсутствует
         function startFallbackRingtone() {
             try {
                 if (!ringAudioCtx) ringAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                let isBeep = false;
 
+                stopFallbackRingtone();
                 outgoingToneInterval = setInterval(() => {
                     if (!ringAudioCtx) return;
                     const osc1 = ringAudioCtx.createOscillator();
@@ -439,18 +431,18 @@
             }
         }
 
-        // Гудки при исходящем вызове ("тут... тут...")
         function startOutgoingTone() {
             try {
                 if (!ringAudioCtx) ringAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
+                stopOutgoingTone();
                 const playBeep = () => {
                     if (!ringAudioCtx) return;
                     const osc = ringAudioCtx.createOscillator();
                     const gain = ringAudioCtx.createGain();
 
                     osc.type = 'sine';
-                    osc.frequency.value = 425; // Стандартная частота гудка
+                    osc.frequency.value = 425;
 
                     gain.gain.setValueAtTime(0.1, ringAudioCtx.currentTime);
                     gain.gain.exponentialRampToValueAtTime(0.001, ringAudioCtx.currentTime + 1.0);
@@ -505,7 +497,6 @@
         let onlineUsers = new Map();
         let unreadCounts = {};
 
-        // АВТОМАТИЧЕСКИЙ ВХОД И ПРОВЕРКА СЕССИИ
         document.addEventListener('DOMContentLoaded', () => {
             const savedSessionId = localStorage.getItem('chat_active_session_id');
             if (savedSessionId) {
@@ -520,7 +511,6 @@
             }
         });
 
-        // Управление вкладками авторизации
         const tabLogin = document.getElementById('tab-login');
         const tabRegister = document.getElementById('tab-register');
         const formLogin = document.getElementById('form-login');
@@ -540,7 +530,6 @@
             formLogin.classList.add('hidden');
         };
 
-        // Вход
         formLogin.onsubmit = (e) => {
             e.preventDefault();
             const id = document.getElementById('login-id').value.trim().toLowerCase();
@@ -565,7 +554,6 @@
             startMessengerSession();
         };
 
-        // Регистрация
         formRegister.onsubmit = (e) => {
             e.preventDefault();
             const id = document.getElementById('reg-id').value.trim().toLowerCase();
@@ -628,7 +616,6 @@
             initWebRTC();
         }
 
-        // Выход
         document.getElementById('logout-btn').onclick = () => {
             if (confirm('Выйти из аккаунта?')) {
                 localStorage.removeItem('chat_active_session_id');
@@ -673,7 +660,6 @@
                     return;
                 }
 
-                // Звонки (Сигналинг)
                 if (topic === 'call_signal_' + myId) {
                     handleCallSignal(data);
                     return;
@@ -718,7 +704,6 @@
             });
         }
 
-        // --- УЧЕТ НЕПРОЧИТАННЫХ СООБЩЕНИЙ ---
         function loadUnreadCounts() {
             try {
                 unreadCounts = JSON.parse(localStorage.getItem('unread_counts_' + myId)) || {};
@@ -743,7 +728,6 @@
             }
         }
 
-        // Добавить друга
         document.getElementById('add-friend-btn').onclick = () => {
             const friendId = prompt('Введи личный ID друга:');
             if (!friendId) return;
@@ -762,7 +746,6 @@
             }
         };
 
-        // Создать комнату
         document.getElementById('join-room-btn').onclick = () => {
             const roomId = prompt('Введи название или номер комнаты:');
             if (!roomId) return;
@@ -949,7 +932,6 @@
             }
         }
 
-        // Отправка текста
         document.getElementById('msg-form').onsubmit = (e) => {
             e.preventDefault();
             if (!currentChat) return alert('Выбери чат из списка!');
@@ -972,7 +954,6 @@
             input.value = '';
         };
 
-        // Отправка файлов
         const attachBtn = document.getElementById('attach-btn');
         const fileInput = document.getElementById('file-input');
 
@@ -1059,7 +1040,6 @@
             saveAndAddMessage(currentChat.id, myName, content, true, msgType, myCustomAvatar, fileName, fileSize);
         }
 
-        // Отрисовка сообщения
         function renderMessageDOM(author, content, isMe, type, customAvatar, fileName, fileSize, scrollDown = true) {
             const box = document.getElementById('messages');
             const div = document.createElement('div');
@@ -1135,14 +1115,20 @@
             document.getElementById('image-modal').classList.remove('flex');
         }
 
-        // --- WebRTC ЗВОНКИ (Аудио / Видео) ---
+        // --- ИСПРАВЛЕННЫЕ WebRTC ЗВОНКИ И ПЕРЕДАЧА ЗВУКА ---
         let peerConnection;
         let localStream;
         let callTargetId = null;
         let isVideoCall = true;
+        let iceCandidatesQueue = [];
 
+        // Общедоступные быстрые STUN-серверы Google
         const rtcConfig = {
-            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' }
+            ]
         };
 
         function initWebRTC() {
@@ -1178,6 +1164,7 @@
 
             callTargetId = currentChat.id;
             isVideoCall = video;
+            iceCandidatesQueue = [];
 
             document.getElementById('active-call-modal').classList.remove('hidden');
             document.getElementById('active-call-name').textContent = currentChat.name;
@@ -1186,12 +1173,15 @@
             startOutgoingTone();
 
             try {
+                // Всегда запрашиваем и аудио и видео
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: isVideoCall });
                 document.getElementById('local-video').srcObject = localStream;
 
                 createPeerConnection();
 
-                localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
 
                 const offer = await peerConnection.createOffer();
                 await peerConnection.setLocalDescription(offer);
@@ -1204,7 +1194,7 @@
                     hasVideo: isVideoCall
                 }));
             } catch (err) {
-                alert('Нет доступа к камере или микрофону!');
+                alert('Не удалось получить доступ к микрофону или камере!');
                 endCall();
             }
         }
@@ -1223,18 +1213,25 @@
             };
 
             peerConnection.ontrack = (event) => {
-                const remoteVideo = document.getElementById('remote-video');
-                const remoteAudio = document.getElementById('remote-audio');
-
                 stopRingtone();
+                stopOutgoingTone();
+
+                const remoteVideo = document.getElementById('remote-video');
+                const remoteAudio = document.getElementById('remote-audio-player');
 
                 if (event.streams && event.streams[0]) {
+                    // Привязываем поток к элементам
                     remoteVideo.srcObject = event.streams[0];
                     remoteAudio.srcObject = event.streams[0];
+
+                    // Явно запускаем воспроизведение звука
+                    remoteAudio.play().catch(() => {});
+                    remoteVideo.play().catch(() => {});
+
                     if (isVideoCall) {
                         document.getElementById('no-remote-video').classList.add('hidden');
                     }
-                    document.getElementById('call-status-timer').textContent = 'Соединение установлено';
+                    document.getElementById('call-status-timer').textContent = 'Разговор...';
                 }
             };
         }
@@ -1252,21 +1249,35 @@
 
                 startRingtone();
             } else if (data.type === 'answer') {
+                stopOutgoingTone();
                 stopRingtone();
+
                 if (peerConnection) {
-                    peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                    peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer)).then(() => {
+                        processIceCandidates();
+                    });
                 }
             } else if (data.type === 'candidate') {
-                if (peerConnection && data.candidate) {
+                if (peerConnection && peerConnection.remoteDescription) {
                     peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(() => {});
+                } else {
+                    iceCandidatesQueue.push(data.candidate);
                 }
             } else if (data.type === 'reject' || data.type === 'end') {
                 endCall();
             }
         }
 
+        function processIceCandidates() {
+            while (iceCandidatesQueue.length > 0) {
+                const cand = iceCandidatesQueue.shift();
+                peerConnection.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
+            }
+        }
+
         async function acceptCall() {
             stopRingtone();
+            stopOutgoingTone();
             document.getElementById('incoming-call-modal').classList.add('hidden');
             if (!pendingCallOffer) return;
 
@@ -1275,14 +1286,22 @@
             document.getElementById('active-call-name').textContent = pendingCallOffer.fromName;
 
             try {
+                // Вызываем проигрывание аудиоплеера напрямую во время клика для обхода автоплей-блокировок
+                const remoteAudio = document.getElementById('remote-audio-player');
+                remoteAudio.play().catch(() => {});
+
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: isVideoCall });
                 document.getElementById('local-video').srcObject = localStream;
 
                 createPeerConnection();
 
-                localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
 
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(pendingCallOffer.offer));
+                processIceCandidates();
+
                 const answer = await peerConnection.createAnswer();
                 await peerConnection.setLocalDescription(answer);
 
@@ -1292,13 +1311,14 @@
                     from: myId
                 }));
             } catch (err) {
-                alert('Не удалось подключить микрофон/камеру!');
+                alert('Не удалось подключить микрофон или камеру!');
                 rejectCall();
             }
         }
 
         function rejectCall() {
             stopRingtone();
+            stopOutgoingTone();
             document.getElementById('incoming-call-modal').classList.add('hidden');
             if (callTargetId) {
                 client.publish('call_signal_' + callTargetId, JSON.stringify({ type: 'reject', from: myId }));
@@ -1309,6 +1329,7 @@
 
         function endCall() {
             stopRingtone();
+            stopOutgoingTone();
             document.getElementById('active-call-modal').classList.add('hidden');
             document.getElementById('incoming-call-modal').classList.add('hidden');
             document.getElementById('no-remote-video').classList.remove('hidden');
@@ -1327,8 +1348,14 @@
                 localStream = null;
             }
 
+            const remoteAudio = document.getElementById('remote-audio-player');
+            const remoteVideo = document.getElementById('remote-video');
+            remoteAudio.srcObject = null;
+            remoteVideo.srcObject = null;
+
             callTargetId = null;
             pendingCallOffer = null;
+            iceCandidatesQueue = [];
         }
 
         // Настройки
