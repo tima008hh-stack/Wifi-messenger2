@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="ru" class="h-full w-full">
 <head>
@@ -35,6 +36,14 @@
         .animate-fade-in { 
             animation: fadeInFast 0.2s cubic-bezier(0.05, 0.9, 0.1, 1) forwards; 
             will-change: transform, opacity;
+        }
+
+        @keyframes callPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            50% { transform: scale(1.08); box-shadow: 0 0 0 20px rgba(16, 185, 129, 0); }
+        }
+        .animate-call-pulse {
+            animation: callPulse 1.5s infinite cubic-bezier(0.4, 0, 0.6, 1);
         }
 
         /* Полный экран для мобильных */
@@ -154,7 +163,7 @@
             <!-- Добавить друга / комнату -->
             <div class="p-2.5 border-b border-slate-800 flex gap-2 shrink-0">
                 <button id="add-friend-btn" type="button" class="flex-1 bg-blue-600/10 hover:bg-blue-600/20 active:scale-95 border border-blue-500/30 text-blue-400 py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0 112 0v1H3v-1z"/></svg>
                     <span>+ Друг</span>
                 </button>
                 <button id="join-room-btn" type="button" class="flex-1 bg-purple-600/10 hover:bg-purple-600/20 active:scale-95 border border-purple-500/30 text-purple-400 py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition">
@@ -180,6 +189,16 @@
                         <h2 class="font-bold text-base text-slate-100 dark:text-white truncate leading-tight" id="active-chat-title">Выбери чат</h2>
                         <p class="text-xs text-slate-400 truncate" id="active-chat-subtitle">Нажми на друга или комнату слева</p>
                     </div>
+                </div>
+
+                <!-- Кнопки звонков для ЛС -->
+                <div id="call-buttons-container" class="hidden flex items-center gap-2 shrink-0">
+                    <button type="button" id="start-voice-call-btn" title="Аудиозвонок" class="p-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-400 transition active:scale-90 shadow-sm flex items-center justify-center">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2a1.003 1.003 0 011.02-.24c1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+                    </button>
+                    <button type="button" id="start-video-call-btn" title="Видеозвонок" class="p-2.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-400 transition active:scale-90 shadow-sm flex items-center justify-center">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+                    </button>
                 </div>
 
                 <div id="room-users-container" class="hidden flex items-center gap-2 shrink-0">
@@ -224,6 +243,61 @@
                 </form>
             </div>
         </main>
+    </div>
+
+    <!-- Входящий звонок Модалка -->
+    <div id="incoming-call-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden">
+        <div class="w-full max-w-sm bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-2xl text-center space-y-5 animate-fade-in">
+            <div id="caller-avatar" class="w-20 h-20 mx-auto rounded-full bg-blue-600 flex items-center justify-center text-2xl font-bold text-white shadow-xl overflow-hidden bg-cover bg-center">?</div>
+            <div>
+                <h3 id="caller-name" class="font-bold text-lg text-white">Имя Собеседника</h3>
+                <p id="call-type-label" class="text-xs text-blue-400 mt-0.5">Входящий вызов...</p>
+            </div>
+            <div class="flex gap-6 justify-center pt-2">
+                <!-- Кнопка Отклонить -->
+                <button id="reject-call-btn" type="button" title="Отклонить" class="w-16 h-16 rounded-full bg-red-600 hover:bg-red-500 active:scale-90 text-white flex items-center justify-center shadow-lg shadow-red-600/30 transition">
+                    <svg class="w-7 h-7 rotate-[135deg]" fill="currentColor" viewBox="0 0 24 24"><path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2a1.003 1.003 0 011.02-.24c1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+                </button>
+                <!-- Кнопка Принять -->
+                <button id="accept-call-btn" type="button" title="Ответить" class="w-16 h-16 rounded-full bg-emerald-500 hover:bg-emerald-400 active:scale-90 text-white flex items-center justify-center shadow-lg shadow-emerald-500/40 transition animate-call-pulse">
+                    <svg class="w-7 h-7" fill="currentColor" viewBox="0 0 24 24"><path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2a1.003 1.003 0 011.02-.24c1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Окно Звонка (Видео / Голос) -->
+    <div id="active-call-modal" class="fixed inset-0 z-50 bg-slate-950 flex flex-col hidden">
+        <!-- Главное видео (Собеседника) -->
+        <div class="relative flex-1 w-full h-full bg-black flex items-center justify-center overflow-hidden">
+            <video id="remote-video" autoplay playsinline class="w-full h-full object-cover"></video>
+            <audio id="remote-audio" autoplay class="hidden"></audio>
+
+            <!-- Плейсхолдер если нет видео -->
+            <div id="no-remote-video" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 text-white space-y-3">
+                <div id="active-call-avatar" class="w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center text-3xl font-bold shadow-2xl overflow-hidden bg-cover bg-center">?</div>
+                <h2 id="active-call-name" class="font-bold text-xl">Собеседник</h2>
+                <p id="call-status-timer" class="text-xs text-emerald-400 font-mono">Вызов...</p>
+            </div>
+
+            <!-- Маленькое видео (Моё) -->
+            <div class="absolute bottom-20 right-4 w-32 h-44 bg-slate-800 border-2 border-white/20 rounded-2xl overflow-hidden shadow-2xl z-10">
+                <video id="local-video" autoplay playsinline muted class="w-full h-full object-cover"></video>
+            </div>
+        </div>
+
+        <!-- Кнопки управления звонком -->
+        <div class="p-6 bg-slate-900/90 backdrop-blur-md border-t border-slate-800 flex justify-center items-center gap-6 shrink-0 z-20">
+            <button id="toggle-mic-btn" type="button" title="Микрофон" class="w-12 h-12 rounded-2xl bg-slate-800 hover:bg-slate-700 active:scale-90 text-white flex items-center justify-center text-xl transition">
+                🎙️
+            </button>
+            <button id="end-call-btn" type="button" title="Завершить вызов" class="w-16 h-16 rounded-full bg-red-600 hover:bg-red-500 active:scale-90 text-white flex items-center justify-center shadow-lg shadow-red-600/40 transition">
+                <svg class="w-7 h-7 rotate-[135deg]" fill="currentColor" viewBox="0 0 24 24"><path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2a1.003 1.003 0 011.02-.24c1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+            </button>
+            <button id="toggle-cam-btn" type="button" title="Камера" class="w-12 h-12 rounded-2xl bg-slate-800 hover:bg-slate-700 active:scale-90 text-white flex items-center justify-center text-xl transition">
+                📹
+            </button>
+        </div>
     </div>
 
     <!-- Настройки -->
@@ -306,6 +380,100 @@
             } catch (e) {}
         }
 
+        // --- ЗВУКИ ЗВОНКОВ И ГУДКОВ ---
+        const ringtoneAudio = new Audio('./sound.mp3');
+        ringtoneAudio.loop = true;
+
+        let outgoingToneInterval = null;
+        let ringAudioCtx = null;
+
+        // Запуск музыки входящего звонка (sound.mp3 или генерируемый звонок)
+        function startRingtone() {
+            ringtoneAudio.currentTime = 0;
+            ringtoneAudio.play().catch(() => {
+                startFallbackRingtone();
+            });
+        }
+
+        function stopRingtone() {
+            ringtoneAudio.pause();
+            ringtoneAudio.currentTime = 0;
+            stopFallbackRingtone();
+            stopOutgoingTone();
+        }
+
+        // Генерируемый рингтон если sound.mp3 отсутствует
+        function startFallbackRingtone() {
+            try {
+                if (!ringAudioCtx) ringAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                let isBeep = false;
+
+                outgoingToneInterval = setInterval(() => {
+                    if (!ringAudioCtx) return;
+                    const osc1 = ringAudioCtx.createOscillator();
+                    const osc2 = ringAudioCtx.createOscillator();
+                    const gain = ringAudioCtx.createGain();
+
+                    osc1.frequency.value = 852;
+                    osc2.frequency.value = 1209;
+
+                    gain.gain.setValueAtTime(0.1, ringAudioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ringAudioCtx.currentTime + 1.2);
+
+                    osc1.connect(gain);
+                    osc2.connect(gain);
+                    gain.connect(ringAudioCtx.destination);
+
+                    osc1.start();
+                    osc2.start();
+                    osc1.stop(ringAudioCtx.currentTime + 1.2);
+                    osc2.stop(ringAudioCtx.currentTime + 1.2);
+                }, 2000);
+            } catch(e) {}
+        }
+
+        function stopFallbackRingtone() {
+            if (outgoingToneInterval) {
+                clearInterval(outgoingToneInterval);
+                outgoingToneInterval = null;
+            }
+        }
+
+        // Гудки при исходящем вызове ("тут... тут...")
+        function startOutgoingTone() {
+            try {
+                if (!ringAudioCtx) ringAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+                const playBeep = () => {
+                    if (!ringAudioCtx) return;
+                    const osc = ringAudioCtx.createOscillator();
+                    const gain = ringAudioCtx.createGain();
+
+                    osc.type = 'sine';
+                    osc.frequency.value = 425; // Стандартная частота гудка
+
+                    gain.gain.setValueAtTime(0.1, ringAudioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ringAudioCtx.currentTime + 1.0);
+
+                    osc.connect(gain);
+                    gain.connect(ringAudioCtx.destination);
+
+                    osc.start();
+                    osc.stop(ringAudioCtx.currentTime + 1.0);
+                };
+
+                playBeep();
+                outgoingToneInterval = setInterval(playBeep, 4000);
+            } catch(e) {}
+        }
+
+        function stopOutgoingTone() {
+            if (outgoingToneInterval) {
+                clearInterval(outgoingToneInterval);
+                outgoingToneInterval = null;
+            }
+        }
+
         const avatarColors = [
             'bg-red-500 text-white', 'bg-orange-500 text-white', 'bg-amber-500 text-white',
             'bg-emerald-500 text-white', 'bg-teal-500 text-white', 'bg-cyan-500 text-white',
@@ -335,6 +503,22 @@
         let friends = [];
         let rooms = [];
         let onlineUsers = new Map();
+        let unreadCounts = {};
+
+        // АВТОМАТИЧЕСКИЙ ВХОД И ПРОВЕРКА СЕССИИ
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedSessionId = localStorage.getItem('chat_active_session_id');
+            if (savedSessionId) {
+                const userDataRaw = localStorage.getItem('user_account_' + savedSessionId);
+                if (userDataRaw) {
+                    const userData = JSON.parse(userDataRaw);
+                    myName = userData.name;
+                    myId = userData.id;
+                    myCustomAvatar = userData.avatar || null;
+                    startMessengerSession();
+                }
+            }
+        });
 
         // Управление вкладками авторизации
         const tabLogin = document.getElementById('tab-login');
@@ -356,7 +540,7 @@
             formLogin.classList.add('hidden');
         };
 
-        // Вход в аккаунт
+        // Вход
         formLogin.onsubmit = (e) => {
             e.preventDefault();
             const id = document.getElementById('login-id').value.trim().toLowerCase();
@@ -372,15 +556,16 @@
                 return alert('Неверный пароль!');
             }
 
-            // Авторизация успешна
             myName = userData.name;
             myId = userData.id;
             myCustomAvatar = userData.avatar || null;
 
+            localStorage.setItem('chat_active_session_id', myId);
+
             startMessengerSession();
         };
 
-        // Регистрация аккаунта
+        // Регистрация
         formRegister.onsubmit = (e) => {
             e.preventDefault();
             const id = document.getElementById('reg-id').value.trim().toLowerCase();
@@ -389,7 +574,7 @@
             const statusDiv = document.getElementById('login-status');
 
             if (localStorage.getItem('user_account_' + id)) {
-                return alert('Этот ID уже зарегистрирован на этом устройстве!');
+                return alert('Этот ID уже зарегистрирован!');
             }
 
             statusDiv.classList.remove('hidden');
@@ -414,13 +599,14 @@
                         statusDiv.classList.add('hidden');
                         alert('❌ Этот ID уже занят другим пользователем в сети!');
                     } else {
-                        // Сохраняем учетку
                         const userAccount = { id, name, password, avatar: null };
                         localStorage.setItem('user_account_' + id, JSON.stringify(userAccount));
 
                         myName = name;
                         myId = id;
                         myCustomAvatar = null;
+
+                        localStorage.setItem('chat_active_session_id', myId);
 
                         startMessengerSession();
                     }
@@ -437,12 +623,15 @@
 
             updateMyAvatarUI();
             loadContacts();
+            loadUnreadCounts();
             connectMQTT();
+            initWebRTC();
         }
 
-        // Выход из аккаунта
+        // Выход
         document.getElementById('logout-btn').onclick = () => {
             if (confirm('Выйти из аккаунта?')) {
+                localStorage.removeItem('chat_active_session_id');
                 location.reload();
             }
         };
@@ -466,6 +655,7 @@
             client.on('connect', () => {
                 client.subscribe('direct_msg_' + myId);
                 client.subscribe('check_id_' + myId);
+                client.subscribe('call_signal_' + myId);
 
                 setInterval(() => {
                     if (currentChat && currentChat.type === 'room') {
@@ -483,34 +673,74 @@
                     return;
                 }
 
+                // Звонки (Сигналинг)
+                if (topic === 'call_signal_' + myId) {
+                    handleCallSignal(data);
+                    return;
+                }
+
                 if (topic.startsWith('custom_room_')) {
+                    const roomId = topic.replace('custom_room_', '');
                     if (data.type === 'ping') {
                         onlineUsers.set(data.id, { name: data.name, time: Date.now() });
                         renderUsers();
                         return;
                     }
 
-                    if (data.senderId !== myId && currentChat && currentChat.id === topic.replace('custom_room_', '')) {
-                        saveAndAddMessage(currentChat.id, data.senderName, data.content, false, data.msgType, data.avatar, data.fileName, data.fileSize);
+                    if (data.senderId !== myId) {
+                        saveAndAddMessage(roomId, data.senderName, data.content, false, data.msgType, data.avatar, data.fileName, data.fileSize);
+                        
+                        if (!currentChat || currentChat.id !== roomId || currentChat.type !== 'room') {
+                            incrementUnread(roomId);
+                        }
                         playNotificationSound();
                     }
                 }
 
                 if (topic === 'direct_msg_' + myId) {
-                    if (!friends.some(f => f.id === data.senderId)) {
-                        friends.push({ id: data.senderId, name: data.senderName, avatar: data.avatar });
+                    const senderId = data.senderId;
+
+                    if (!friends.some(f => f.id === senderId)) {
+                        friends.push({ id: senderId, name: data.senderName, avatar: data.avatar });
                         saveContacts();
                         renderSidebarChats();
                     }
 
-                    saveMessageToStorage(data.senderId, data.senderName, data.content, false, data.msgType, data.avatar, data.fileName, data.fileSize);
+                    saveMessageToStorage(senderId, data.senderName, data.content, false, data.msgType, data.avatar, data.fileName, data.fileSize);
 
-                    if (currentChat && currentChat.id === data.senderId && currentChat.type === 'direct') {
+                    if (currentChat && currentChat.id === senderId && currentChat.type === 'direct') {
                         renderMessageDOM(data.senderName, data.content, false, data.msgType, data.avatar, data.fileName, data.fileSize, true);
+                    } else {
+                        incrementUnread(senderId);
                     }
                     playNotificationSound();
                 }
             });
+        }
+
+        // --- УЧЕТ НЕПРОЧИТАННЫХ СООБЩЕНИЙ ---
+        function loadUnreadCounts() {
+            try {
+                unreadCounts = JSON.parse(localStorage.getItem('unread_counts_' + myId)) || {};
+            } catch(e) { unreadCounts = {}; }
+            renderSidebarChats();
+        }
+
+        function saveUnreadCounts() {
+            localStorage.setItem('unread_counts_' + myId, JSON.stringify(unreadCounts));
+            renderSidebarChats();
+        }
+
+        function incrementUnread(chatId) {
+            unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
+            saveUnreadCounts();
+        }
+
+        function clearUnread(chatId) {
+            if (unreadCounts[chatId]) {
+                delete unreadCounts[chatId];
+                saveUnreadCounts();
+            }
         }
 
         // Добавить друга
@@ -575,15 +805,22 @@
                 friends.forEach(f => {
                     const el = document.createElement('div');
                     const isActive = currentChat && currentChat.id === f.id && currentChat.type === 'direct';
+                    const unread = unreadCounts[f.id] || 0;
+
                     el.className = `p-3 rounded-2xl flex items-center gap-3 cursor-pointer transition active:scale-[0.98] ${isActive ? 'bg-blue-600/20 border border-blue-500/40' : 'hover:bg-slate-800/50 border border-transparent'}`;
                     el.onclick = () => openChat(f.id, f.name, 'direct');
 
                     const color = getColorForName(f.name);
+                    const unreadBadge = unread > 0 ? `<span class="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md animate-pulse">${unread}</span>` : '';
+
                     el.innerHTML = `
                         <div class="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs ${color} shrink-0">${f.name.charAt(0).toUpperCase()}</div>
-                        <div class="flex-1 min-w-0">
-                            <h3 class="text-sm font-semibold text-slate-100 dark:text-white truncate leading-tight">${escapeHTML(f.name)}</h3>
-                            <p class="text-[11px] text-slate-400 truncate">@${escapeHTML(f.id)}</p>
+                        <div class="flex-1 min-w-0 flex justify-between items-center">
+                            <div class="min-w-0 pr-1">
+                                <h3 class="text-sm font-semibold text-slate-100 dark:text-white truncate leading-tight">${escapeHTML(f.name)}</h3>
+                                <p class="text-[11px] text-slate-400 truncate">@${escapeHTML(f.id)}</p>
+                            </div>
+                            ${unreadBadge}
                         </div>
                     `;
                     container.appendChild(el);
@@ -599,14 +836,21 @@
                 rooms.forEach(r => {
                     const el = document.createElement('div');
                     const isActive = currentChat && currentChat.id === r.id && currentChat.type === 'room';
+                    const unread = unreadCounts[r.id] || 0;
+
                     el.className = `p-3 rounded-2xl flex items-center gap-3 cursor-pointer transition active:scale-[0.98] ${isActive ? 'bg-purple-600/20 border border-purple-500/40' : 'hover:bg-slate-800/50 border border-transparent'}`;
                     el.onclick = () => openChat(r.id, r.name, 'room');
 
+                    const unreadBadge = unread > 0 ? `<span class="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md animate-pulse">${unread}</span>` : '';
+
                     el.innerHTML = `
                         <div class="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-xs text-purple-400 shrink-0">#</div>
-                        <div class="flex-1 min-w-0">
-                            <h3 class="text-sm font-semibold text-slate-100 dark:text-white truncate leading-tight">${escapeHTML(r.name)}</h3>
-                            <p class="text-[11px] text-slate-400 truncate">Групповой чат</p>
+                        <div class="flex-1 min-w-0 flex justify-between items-center">
+                            <div class="min-w-0 pr-1">
+                                <h3 class="text-sm font-semibold text-slate-100 dark:text-white truncate leading-tight">${escapeHTML(r.name)}</h3>
+                                <p class="text-[11px] text-slate-400 truncate">Групповой чат</p>
+                            </div>
+                            ${unreadBadge}
                         </div>
                     `;
                     container.appendChild(el);
@@ -635,7 +879,7 @@
             }
 
             currentChat = { id, name, type };
-            renderSidebarChats();
+            clearUnread(id);
 
             document.getElementById('sidebar').classList.add('hidden');
             document.getElementById('chat-area').classList.remove('hidden');
@@ -649,11 +893,15 @@
             avatar.className = `w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-sm shadow-md ${type === 'direct' ? getColorForName(name) : 'bg-purple-600 text-white'}`;
 
             const roomUsersContainer = document.getElementById('room-users-container');
+            const callButtonsContainer = document.getElementById('call-buttons-container');
+
             if (type === 'room') {
                 roomUsersContainer.classList.remove('hidden');
+                callButtonsContainer.classList.add('hidden');
                 client.subscribe('custom_room_' + id);
             } else {
                 roomUsersContainer.classList.add('hidden');
+                callButtonsContainer.classList.remove('hidden');
             }
 
             loadChatHistory();
@@ -887,6 +1135,202 @@
             document.getElementById('image-modal').classList.remove('flex');
         }
 
+        // --- WebRTC ЗВОНКИ (Аудио / Видео) ---
+        let peerConnection;
+        let localStream;
+        let callTargetId = null;
+        let isVideoCall = true;
+
+        const rtcConfig = {
+            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+        };
+
+        function initWebRTC() {
+            document.getElementById('start-voice-call-btn').onclick = () => startCall(false);
+            document.getElementById('start-video-call-btn').onclick = () => startCall(true);
+            document.getElementById('end-call-btn').onclick = endCall;
+            document.getElementById('reject-call-btn').onclick = rejectCall;
+            document.getElementById('accept-call-btn').onclick = acceptCall;
+
+            document.getElementById('toggle-mic-btn').onclick = () => {
+                if (localStream) {
+                    const audioTrack = localStream.getAudioTracks()[0];
+                    if (audioTrack) {
+                        audioTrack.enabled = !audioTrack.enabled;
+                        document.getElementById('toggle-mic-btn').classList.toggle('bg-red-600', !audioTrack.enabled);
+                    }
+                }
+            };
+
+            document.getElementById('toggle-cam-btn').onclick = () => {
+                if (localStream) {
+                    const videoTrack = localStream.getVideoTracks()[0];
+                    if (videoTrack) {
+                        videoTrack.enabled = !videoTrack.enabled;
+                        document.getElementById('toggle-cam-btn').classList.toggle('bg-red-600', !videoTrack.enabled);
+                    }
+                }
+            };
+        }
+
+        async function startCall(video) {
+            if (!currentChat || currentChat.type !== 'direct') return alert('Звонить можно только другу в ЛС!');
+
+            callTargetId = currentChat.id;
+            isVideoCall = video;
+
+            document.getElementById('active-call-modal').classList.remove('hidden');
+            document.getElementById('active-call-name').textContent = currentChat.name;
+            document.getElementById('call-status-timer').textContent = 'Вызов...';
+
+            startOutgoingTone();
+
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: isVideoCall });
+                document.getElementById('local-video').srcObject = localStream;
+
+                createPeerConnection();
+
+                localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+
+                client.publish('call_signal_' + callTargetId, JSON.stringify({
+                    type: 'offer',
+                    offer: offer,
+                    from: myId,
+                    fromName: myName,
+                    hasVideo: isVideoCall
+                }));
+            } catch (err) {
+                alert('Нет доступа к камере или микрофону!');
+                endCall();
+            }
+        }
+
+        function createPeerConnection() {
+            peerConnection = new RTCPeerConnection(rtcConfig);
+
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate && callTargetId) {
+                    client.publish('call_signal_' + callTargetId, JSON.stringify({
+                        type: 'candidate',
+                        candidate: event.candidate,
+                        from: myId
+                    }));
+                }
+            };
+
+            peerConnection.ontrack = (event) => {
+                const remoteVideo = document.getElementById('remote-video');
+                const remoteAudio = document.getElementById('remote-audio');
+
+                stopRingtone();
+
+                if (event.streams && event.streams[0]) {
+                    remoteVideo.srcObject = event.streams[0];
+                    remoteAudio.srcObject = event.streams[0];
+                    if (isVideoCall) {
+                        document.getElementById('no-remote-video').classList.add('hidden');
+                    }
+                    document.getElementById('call-status-timer').textContent = 'Соединение установлено';
+                }
+            };
+        }
+
+        let pendingCallOffer = null;
+
+        function handleCallSignal(data) {
+            if (data.type === 'offer') {
+                pendingCallOffer = data;
+                callTargetId = data.from;
+
+                document.getElementById('caller-name').textContent = data.fromName;
+                document.getElementById('call-type-label').textContent = data.hasVideo ? 'Входящий видеозвонок...' : 'Входящий аудиозвонок...';
+                document.getElementById('incoming-call-modal').classList.remove('hidden');
+
+                startRingtone();
+            } else if (data.type === 'answer') {
+                stopRingtone();
+                if (peerConnection) {
+                    peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                }
+            } else if (data.type === 'candidate') {
+                if (peerConnection && data.candidate) {
+                    peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(() => {});
+                }
+            } else if (data.type === 'reject' || data.type === 'end') {
+                endCall();
+            }
+        }
+
+        async function acceptCall() {
+            stopRingtone();
+            document.getElementById('incoming-call-modal').classList.add('hidden');
+            if (!pendingCallOffer) return;
+
+            isVideoCall = pendingCallOffer.hasVideo;
+            document.getElementById('active-call-modal').classList.remove('hidden');
+            document.getElementById('active-call-name').textContent = pendingCallOffer.fromName;
+
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: isVideoCall });
+                document.getElementById('local-video').srcObject = localStream;
+
+                createPeerConnection();
+
+                localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(pendingCallOffer.offer));
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+
+                client.publish('call_signal_' + callTargetId, JSON.stringify({
+                    type: 'answer',
+                    answer: answer,
+                    from: myId
+                }));
+            } catch (err) {
+                alert('Не удалось подключить микрофон/камеру!');
+                rejectCall();
+            }
+        }
+
+        function rejectCall() {
+            stopRingtone();
+            document.getElementById('incoming-call-modal').classList.add('hidden');
+            if (callTargetId) {
+                client.publish('call_signal_' + callTargetId, JSON.stringify({ type: 'reject', from: myId }));
+            }
+            pendingCallOffer = null;
+            callTargetId = null;
+        }
+
+        function endCall() {
+            stopRingtone();
+            document.getElementById('active-call-modal').classList.add('hidden');
+            document.getElementById('incoming-call-modal').classList.add('hidden');
+            document.getElementById('no-remote-video').classList.remove('hidden');
+
+            if (callTargetId && client) {
+                client.publish('call_signal_' + callTargetId, JSON.stringify({ type: 'end', from: myId }));
+            }
+
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+
+            callTargetId = null;
+            pendingCallOffer = null;
+        }
+
         // Настройки
         const settingsBtn = document.getElementById('settings-btn');
         const settingsModal = document.getElementById('settings-modal');
@@ -929,7 +1373,6 @@
                 myCustomAvatar = event.target.result;
                 updateMyAvatarUI();
 
-                // Обновляем аватарку в аккаунте
                 const userDataRaw = localStorage.getItem('user_account_' + myId);
                 if (userDataRaw) {
                     const userData = JSON.parse(userDataRaw);
@@ -1026,3 +1469,5 @@
     </script>
 </body>
 </html>
+
+```
