@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Локальный Чат</title>
+    <title>Локальный Чат со Звонками</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <style>
@@ -31,8 +31,9 @@
         }
     </style>
 </head>
-<body class="bg-slate-950 text-white min-h-screen flex items-center justify-center p-4 font-sans relative overflow-hidden fallback-bg">
+<body class="bg-slate-950 text-white min-h-screen flex items-center justify-center p-2 sm:p-4 font-sans relative overflow-hidden fallback-bg">
 
+    <!-- Задний фон (видео) -->
     <video id="bg-video" autoplay loop muted playsinline webkit-playsinline class="absolute inset-0 w-full h-full object-cover z-0">
         <source src="./bg.mp4" type="video/mp4">
         <source src="./2668.mp4" type="video/mp4">
@@ -41,8 +42,10 @@
 
     <div class="absolute inset-0 bg-slate-950/50 backdrop-blur-xl z-0"></div>
 
-    <div class="w-full max-w-md bg-slate-900/40 backdrop-blur-2xl p-6 rounded-3xl shadow-2xl border border-white/10 z-10 animate-fade-in relative">
+    <!-- Основное окно -->
+    <div class="w-full max-w-md bg-slate-900/40 backdrop-blur-2xl p-4 sm:p-6 rounded-3xl shadow-2xl border border-white/10 z-10 animate-fade-in relative">
         
+        <!-- Окно входа -->
         <div id="login-block" class="space-y-5">
             <div class="text-center space-y-1">
                 <h1 class="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-300">
@@ -71,6 +74,7 @@
             </div>
         </div>
 
+        <!-- Окно чата -->
         <div id="chat-block" class="hidden space-y-4 animate-fade-in">
             <div class="flex justify-between items-center border-b border-white/10 pb-3">
                 <div class="flex items-center gap-3">
@@ -90,13 +94,16 @@
                 </div>
             </div>
 
+            <!-- Список участников с кнопками вызова -->
             <div>
-                <p class="text-[11px] text-slate-300 mb-1.5 font-medium">Участники рядом:</p>
+                <p class="text-[11px] text-slate-300 mb-1.5 font-medium">Участники рядом (нажмите для звонка):</p>
                 <div id="users-list" class="flex flex-wrap gap-1.5"></div>
             </div>
 
+            <!-- Сообщения -->
             <div id="messages" class="h-72 bg-slate-950/40 rounded-2xl p-3 overflow-y-auto space-y-2 border border-white/5 text-sm scroll-smooth"></div>
 
+            <!-- Форма отправки -->
             <form id="msg-form" class="flex gap-2 items-center">
                 <input type="text" id="msg-input" placeholder="Напиши сообщение..." autocomplete="off" 
                     class="flex-1 bg-slate-950/60 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all">
@@ -116,8 +123,56 @@
 
     </div>
 
+    <!-- Модальное окно звонка -->
+    <div id="call-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-2xl z-50 hidden flex flex-col items-center justify-between p-6 animate-fade-in">
+        <div class="text-center pt-8 space-y-2">
+            <h3 id="call-title" class="text-2xl font-bold text-white">Вызов...</h3>
+            <p id="call-status" class="text-sm text-slate-400">Соединение...</p>
+        </div>
+
+        <!-- Контейнер с видео -->
+        <div class="relative w-full max-w-lg aspect-video bg-slate-900 rounded-3xl overflow-hidden border border-white/10 shadow-2xl flex items-center justify-center my-auto">
+            <!-- Удаленное видео -->
+            <video id="remote-video" autoplay playsinline class="w-full h-full object-cover"></video>
+            <div id="remote-avatar-placeholder" class="absolute inset-0 flex items-center justify-center bg-slate-900">
+                <div id="call-avatar" class="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-bold shadow-2xl">?</div>
+            </div>
+
+            <!-- Локальное видео (Картинка в картинке) -->
+            <div class="absolute bottom-3 right-3 w-28 h-36 bg-slate-950 rounded-2xl overflow-hidden border border-white/20 shadow-lg">
+                <video id="local-video" autoplay playsinline muted class="w-full h-full object-cover"></video>
+            </div>
+        </div>
+
+        <!-- Панель управления звонком -->
+        <div class="pb-8 flex items-center gap-4">
+            <!-- Кнопки входящего вызова -->
+            <div id="incoming-controls" class="hidden flex items-center gap-6">
+                <button id="reject-btn" class="w-16 h-16 rounded-full bg-red-600 hover:bg-red-500 flex items-center justify-center text-white shadow-lg shadow-red-600/30 transition active:scale-95">
+                    ❌
+                </button>
+                <button id="accept-btn" class="w-16 h-16 rounded-full bg-emerald-600 hover:bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-600/30 transition active:scale-95 text-2xl animate-bounce">
+                    📞
+                </button>
+            </div>
+
+            <!-- Кнопки во время звонка -->
+            <div id="active-controls" class="flex items-center gap-4">
+                <button id="toggle-mic-btn" class="p-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white border border-white/10 transition active:scale-95">
+                    🎤
+                </button>
+                <button id="toggle-cam-btn" class="p-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white border border-white/10 transition active:scale-95">
+                    📹
+                </button>
+                <button id="end-call-btn" class="p-4 px-6 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-bold transition shadow-lg shadow-red-600/30 active:scale-95">
+                    Завершить
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Запуск видео
+        // Запуск видео фона
         document.addEventListener('DOMContentLoaded', () => {
             const video = document.getElementById('bg-video');
             if (video) { video.muted = true; video.play().catch(() => {}); }
@@ -141,43 +196,49 @@
             return result;
         }
 
-        // --- ВОСПРОИЗВЕДЕНИЕ СВОЕГО ЗВУКОВОГО ФАЙЛА ---
-        // Положи файл notification.mp3 рядом с этим HTML-файлом
+        // Звуковые эффекты
         const notifyAudio = new Audio('./notification.mp3');
 
         function playNotificationSound() {
             notifyAudio.currentTime = 0;
-            notifyAudio.play().catch(() => {
-                playFallbackSound();
-            });
+            notifyAudio.play().catch(() => playFallbackSound(880, 0.2));
         }
 
-        // Запасной звук, если нет файла notification.mp3
-        function playFallbackSound() {
+        function playFallbackSound(freq = 587.33, duration = 0.2) {
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 const oscillator = audioCtx.createOscillator();
                 const gainNode = audioCtx.createGain();
 
                 oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(587.33, audioCtx.currentTime);
-                oscillator.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.08);
-
+                oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
                 gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
 
                 oscillator.connect(gainNode);
                 gainNode.connect(audioCtx.destination);
 
                 oscillator.start();
-                oscillator.stop(audioCtx.currentTime + 0.2);
+                oscillator.stop(audioCtx.currentTime + duration);
             } catch (e) {}
         }
 
-        // Кнопка проверки звука
-        document.getElementById('test-sound-btn').onclick = () => {
-            playNotificationSound();
-        };
+        // Гудок при звонке
+        let ringInterval = null;
+        function startRingtone() {
+            stopRingtone();
+            ringInterval = setInterval(() => {
+                playFallbackSound(440, 0.4);
+            }, 1200);
+        }
+        function stopRingtone() {
+            if (ringInterval) {
+                clearInterval(ringInterval);
+                ringInterval = null;
+            }
+        }
+
+        document.getElementById('test-sound-btn').onclick = () => playNotificationSound();
 
         let client, myName, myRoom, myId = Math.random().toString(36).substring(7);
         let users = new Map();
@@ -195,6 +256,192 @@
             return avatarColors[Math.abs(hash) % avatarColors.length];
         }
 
+        // --- ЛОГИКА WEBRTC ЗВОНКОВ ---
+        let peerConnection = null;
+        let localStream = null;
+        let currentCallTarget = null;
+        let incomingOfferData = null;
+
+        const rtcConfig = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        };
+
+        async function initMedia(video = true) {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: video });
+                document.getElementById('local-video').srcObject = localStream;
+            } catch (err) {
+                console.warn('Не удалось получить видеопоток, пробуем только аудио:', err);
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                document.getElementById('local-video').srcObject = null;
+            }
+        }
+
+        function createPeerConnection(targetId) {
+            peerConnection = new RTCPeerConnection(rtcConfig);
+
+            localStream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, localStream);
+            });
+
+            peerConnection.ontrack = (e) => {
+                const remoteVideo = document.getElementById('remote-video');
+                document.getElementById('remote-avatar-placeholder').classList.add('hidden');
+                remoteVideo.srcObject = e.streams[0];
+            };
+
+            peerConnection.onicecandidate = (e) => {
+                if (e.candidate) {
+                    client.publish('my_custom_room_' + myRoom, JSON.stringify({
+                        type: 'ice-candidate',
+                        from: myId,
+                        target: targetId,
+                        candidate: e.candidate
+                    }));
+                }
+            };
+
+            peerConnection.onconnectionstatechange = () => {
+                if (peerConnection.connectionState === 'disconnected' || peerConnection.connectionState === 'failed') {
+                    endCall();
+                }
+            };
+        }
+
+        // Начать вызов (Инициатор)
+        async function startCall(targetId, targetName, withVideo = true) {
+            currentCallTarget = targetId;
+            showCallModal(targetName, 'Вызов пользователя...', true);
+            startRingtone();
+
+            await initMedia(withVideo);
+            createPeerConnection(targetId);
+
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+
+            client.publish('my_custom_room_' + myRoom, JSON.stringify({
+                type: 'call-offer',
+                from: myId,
+                fromName: myName,
+                target: targetId,
+                sdp: offer
+            }));
+        }
+
+        // Принять звонок
+        document.getElementById('accept-btn').onclick = async () => {
+            stopRingtone();
+            document.getElementById('incoming-controls').classList.add('hidden');
+            document.getElementById('active-controls').classList.remove('hidden');
+            document.getElementById('call-status').textContent = 'Разговор...';
+
+            await initMedia(true);
+            createPeerConnection(incomingOfferData.from);
+
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(incomingOfferData.sdp));
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+
+            client.publish('my_custom_room_' + myRoom, JSON.stringify({
+                type: 'call-answer',
+                from: myId,
+                target: incomingOfferData.from,
+                sdp: answer
+            }));
+        };
+
+        // Отклонить звонок
+        document.getElementById('reject-btn').onclick = () => {
+            stopRingtone();
+            if (incomingOfferData) {
+                client.publish('my_custom_room_' + myRoom, JSON.stringify({
+                    type: 'call-reject',
+                    from: myId,
+                    target: incomingOfferData.from
+                }));
+            }
+            closeCallModal();
+        };
+
+        // Завершить звонок
+        document.getElementById('end-call-btn').onclick = () => {
+            if (currentCallTarget) {
+                client.publish('my_custom_room_' + myRoom, JSON.stringify({
+                    type: 'call-end',
+                    from: myId,
+                    target: currentCallTarget
+                }));
+            }
+            endCall();
+        };
+
+        function endCall() {
+            stopRingtone();
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            closeCallModal();
+        }
+
+        function showCallModal(name, statusText, isOutgoing = false) {
+            const modal = document.getElementById('call-modal');
+            document.getElementById('call-title').textContent = name;
+            document.getElementById('call-status').textContent = statusText;
+
+            const avatar = document.getElementById('call-avatar');
+            avatar.textContent = name.charAt(0).toUpperCase();
+            avatar.className = `w-24 h-24 rounded-full flex items-center justify-center text-3xl font-bold shadow-2xl ${getColorForName(name)}`;
+
+            document.getElementById('remote-avatar-placeholder').classList.remove('hidden');
+
+            if (isOutgoing) {
+                document.getElementById('incoming-controls').classList.add('hidden');
+                document.getElementById('active-controls').classList.remove('hidden');
+            } else {
+                document.getElementById('incoming-controls').classList.remove('hidden');
+                document.getElementById('active-controls').classList.add('hidden');
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeCallModal() {
+            document.getElementById('call-modal').classList.add('hidden');
+            currentCallTarget = null;
+            incomingOfferData = null;
+        }
+
+        // Управление микрофоном и камерой во время звонка
+        document.getElementById('toggle-mic-btn').onclick = () => {
+            if (localStream) {
+                const audioTrack = localStream.getAudioTracks()[0];
+                if (audioTrack) {
+                    audioTrack.enabled = !audioTrack.enabled;
+                    document.getElementById('toggle-mic-btn').textContent = audioTrack.enabled ? '🎤' : '🎙️❌';
+                }
+            }
+        };
+
+        document.getElementById('toggle-cam-btn').onclick = () => {
+            if (localStream) {
+                const videoTrack = localStream.getVideoTracks()[0];
+                if (videoTrack) {
+                    videoTrack.enabled = !videoTrack.enabled;
+                    document.getElementById('toggle-cam-btn').textContent = videoTrack.enabled ? '📹' : '📷❌';
+                }
+            }
+        };
+
+        // --- ВХОД В ЧАТ И MQTT LOGIC ---
         document.getElementById('join-btn').onclick = () => {
             myName = document.getElementById('username').value.trim();
             myRoom = document.getElementById('room').value.trim();
@@ -220,12 +467,14 @@
                 }, 2000);
             });
 
-            client.on('message', (topic, msg) => {
+            client.on('message', async (topic, msg) => {
                 let data = JSON.parse(msg.toString());
+
                 if (data.type === 'ping') {
                     users.set(data.id, { name: data.name, time: Date.now() });
                     renderUsers();
                 }
+
                 if (data.id !== myId) {
                     if (data.type === 'text') {
                         addMessage(data.name, data.text, false);
@@ -234,6 +483,34 @@
                     if (data.type === 'audio') {
                         addAudioMessage(data.name, data.audio, false);
                         playNotificationSound();
+                    }
+
+                    // Обработка звонков (только если адресовано нам)
+                    if (data.target === myId) {
+                        if (data.type === 'call-offer') {
+                            incomingOfferData = data;
+                            currentCallTarget = data.from;
+                            showCallModal(data.fromName, 'Входящий звонок...', false);
+                            startRingtone();
+                        }
+                        if (data.type === 'call-answer' && peerConnection) {
+                            stopRingtone();
+                            document.getElementById('call-status').textContent = 'Разговор...';
+                            await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
+                        }
+                        if (data.type === 'ice-candidate' && peerConnection) {
+                            try {
+                                await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+                            } catch (e) {}
+                        }
+                        if (data.type === 'call-reject') {
+                            stopRingtone();
+                            alert('Вызов отклонен');
+                            endCall();
+                        }
+                        if (data.type === 'call-end') {
+                            endCall();
+                        }
                     }
                 }
             });
@@ -297,7 +574,7 @@
             box.scrollTop = box.scrollHeight;
         }
 
-        // 🎙️ ЛОГИКА ЗАПИСИ ГОЛОСОВЫХ СООБЩЕНИЙ
+        // Запись голосовых сообщений
         let mediaRecorder, audioChunks = [], isRecording = false, recTimerInterval, seconds = 0;
         const micBtn = document.getElementById('mic-btn');
         const recTimer = document.getElementById('rec-timer');
@@ -354,13 +631,26 @@
         function renderUsers() {
             let container = document.getElementById('users-list');
             container.innerHTML = '';
-            users.forEach(u => {
+            users.forEach((u, id) => {
                 let badge = document.createElement('div');
                 const firstLetter = u.name.charAt(0).toUpperCase();
                 const avatarColor = getColorForName(u.name);
 
                 badge.className = 'flex items-center gap-1.5 bg-slate-950/60 border border-white/10 px-2.5 py-1 rounded-xl text-xs text-slate-200 animate-fade-in';
-                badge.innerHTML = `<span class="w-4 h-4 rounded-lg flex items-center justify-center text-[9px] font-bold ${avatarColor}">${firstLetter}</span><span>${escapeHTML(u.name)}</span>`;
+                
+                let callBtns = '';
+                if (id !== myId) {
+                    callBtns = `
+                        <button onclick="startCall('${id}', '${escapeHTML(u.name)}', true)" title="Видеозвонок" class="ml-1 text-xs hover:scale-125 transition">📹</button>
+                        <button onclick="startCall('${id}', '${escapeHTML(u.name)}', false)" title="Аудиозвонок" class="text-xs hover:scale-125 transition">📞</button>
+                    `;
+                }
+
+                badge.innerHTML = `
+                    <span class="w-4 h-4 rounded-lg flex items-center justify-center text-[9px] font-bold ${avatarColor}">${firstLetter}</span>
+                    <span>${escapeHTML(u.name)}</span>
+                    ${callBtns}
+                `;
                 container.appendChild(badge);
             });
         }
@@ -377,3 +667,4 @@
     </script>
 </body>
 </html>
+
