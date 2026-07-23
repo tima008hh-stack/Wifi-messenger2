@@ -98,17 +98,30 @@
             <div id="messages" class="h-72 bg-slate-950/40 rounded-2xl p-3 overflow-y-auto space-y-2 border border-white/5 text-sm scroll-smooth"></div>
 
             <form id="msg-form" class="flex gap-2 items-center">
+                <!-- Скрытый инпут для выбора фото -->
+                <input type="file" id="image-input" accept="image/*" class="hidden">
+
+                <!-- Кнопка скрепки (отправка фото) -->
+                <button type="button" id="attach-btn" title="Отправить фото"
+                    class="bg-slate-900/80 hover:bg-slate-800 active:scale-95 text-slate-300 hover:text-blue-400 p-3 rounded-2xl transition border border-white/10 flex items-center justify-center shrink-0 shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 -rotate-45" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                    </svg>
+                </button>
+
                 <input type="text" id="msg-input" placeholder="Напиши сообщение..." autocomplete="off" 
                     class="flex-1 bg-slate-950/60 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all">
                 
-                <button type="button" id="mic-btn" 
-                    class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 p-3 rounded-2xl transition border border-white/10 flex items-center justify-center shrink-0">
+                <!-- Кнопка микрофона -->
+                <button type="button" id="mic-btn" title="Голосовое сообщение"
+                    class="bg-slate-900/80 hover:bg-slate-800 active:scale-95 text-slate-300 hover:text-red-400 p-3 rounded-2xl transition border border-white/10 flex items-center justify-center shrink-0 shadow-sm">
                     <svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
                     <span id="rec-timer" class="hidden text-xs font-bold text-red-400 ml-1">00:00</span>
                 </button>
 
-                <button type="submit" 
-                    class="bg-blue-600 hover:bg-blue-500 active:scale-95 font-bold p-3 rounded-2xl transition shadow-md shadow-blue-600/20 flex items-center justify-center shrink-0">
+                <!-- Кнопка отправки текста -->
+                <button type="submit" title="Отправить"
+                    class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white p-3 rounded-2xl transition shadow-md shadow-blue-600/20 flex items-center justify-center shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
                 </button>
             </form>
@@ -116,14 +129,17 @@
 
     </div>
 
+    <!-- Модальное окно для просмотра фото в полный размер -->
+    <div id="image-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4 cursor-pointer" onclick="closeImageModal()">
+        <img id="modal-img" class="max-w-full max-h-[90vh] rounded-2xl shadow-2xl border border-white/10 object-contain">
+    </div>
+
     <script>
-        // Запуск видео
         document.addEventListener('DOMContentLoaded', () => {
             const video = document.getElementById('bg-video');
             if (video) { video.muted = true; video.play().catch(() => {}); }
         });
 
-        // Цензура матов
         function censorText(text) {
             const badWordsPatterns = [
                 /хуй[яиеюаммиыовлдезс]?/gi, /пизд[аеыоуияюаммивлдезс]?/gi,
@@ -134,25 +150,18 @@
             ];
             let result = text;
             badWordsPatterns.forEach(pattern => {
-                result = result.replace(pattern, (match) => {
-                    return match.charAt(0) + '*'.repeat(match.length - 1);
-                });
+                result = result.replace(pattern, (match) => match.charAt(0) + '*'.repeat(match.length - 1));
             });
             return result;
         }
 
-        // --- ВОСПРОИЗВЕДЕНИЕ СВОЕГО ЗВУКОВОГО ФАЙЛА ---
-        // Положи файл notification.mp3 рядом с этим HTML-файлом
         const notifyAudio = new Audio('./notification.mp3');
 
         function playNotificationSound() {
             notifyAudio.currentTime = 0;
-            notifyAudio.play().catch(() => {
-                playFallbackSound();
-            });
+            notifyAudio.play().catch(() => playFallbackSound());
         }
 
-        // Запасной звук, если нет файла notification.mp3
         function playFallbackSound() {
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -174,10 +183,7 @@
             } catch (e) {}
         }
 
-        // Кнопка проверки звука
-        document.getElementById('test-sound-btn').onclick = () => {
-            playNotificationSound();
-        };
+        document.getElementById('test-sound-btn').onclick = () => playNotificationSound();
 
         let client, myName, myRoom, myId = Math.random().toString(36).substring(7);
         let users = new Map();
@@ -210,6 +216,8 @@
             myAvatar.textContent = myName.charAt(0).toUpperCase();
             myAvatar.className = `w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-base shadow-lg ${getColorForName(myName)}`;
 
+            loadHistory();
+
             client = mqtt.connect('wss://broker.hivemq.com:8884/mqtt');
 
             client.on('connect', () => {
@@ -228,16 +236,64 @@
                 }
                 if (data.id !== myId) {
                     if (data.type === 'text') {
-                        addMessage(data.name, data.text, false);
+                        saveAndAddMessage(data.name, data.text, false, 'text');
                         playNotificationSound();
                     }
                     if (data.type === 'audio') {
-                        addAudioMessage(data.name, data.audio, false);
+                        saveAndAddMessage(data.name, data.audio, false, 'audio');
+                        playNotificationSound();
+                    }
+                    if (data.type === 'image') {
+                        saveAndAddMessage(data.name, data.image, false, 'image');
                         playNotificationSound();
                     }
                 }
             });
         };
+
+        // Работа с локальной историей на 1 день для каждой комнаты
+        function getStorageKey() {
+            return 'chat_history_room_' + myRoom;
+        }
+
+        function loadHistory() {
+            let box = document.getElementById('messages');
+            box.innerHTML = '';
+            try {
+                let rawData = localStorage.getItem(getStorageKey());
+                if (!rawData) return;
+                let data = JSON.parse(rawData);
+                
+                // Проверяем, не прошло ли больше 1 дня (24 часа)
+                if (Date.now() - data.timestamp > 24 * 60 * 60 * 1000) {
+                    localStorage.removeItem(getStorageKey());
+                    return;
+                }
+
+                data.messages.forEach(m => {
+                    renderMessageDOM(m.author, m.content, m.isMe, m.type, false);
+                });
+            } catch (e) {}
+        }
+
+        function saveMessageToStorage(author, content, isMe, type) {
+            try {
+                let key = getStorageKey();
+                let rawData = localStorage.getItem(key);
+                let chatData = rawData ? JSON.parse(rawData) : { timestamp: Date.now(), messages: [] };
+                
+                chatData.messages.push({ author, content, isMe, type });
+                // Ограничим до последних 150 сообщений, чтобы не забивать память
+                if (chatData.messages.length > 150) chatData.messages.shift();
+
+                localStorage.setItem(key, JSON.stringify(chatData));
+            } catch (e) {}
+        }
+
+        function saveAndAddMessage(author, content, isMe, type) {
+            saveMessageToStorage(author, content, isMe, type);
+            renderMessageDOM(author, content, isMe, type, true);
+        }
 
         // Отправка текста
         document.getElementById('msg-form').onsubmit = (e) => {
@@ -247,60 +303,108 @@
             if (!text) return;
 
             client.publish('my_custom_room_' + myRoom, JSON.stringify({ type: 'text', id: myId, name: myName, text: text }));
-            addMessage(myName, text, true);
+            saveAndAddMessage(myName, text, true, 'text');
             input.value = '';
         };
 
-        function addMessage(author, text, isMe) {
+        // Отправка фотографий через скрепку
+        const attachBtn = document.getElementById('attach-btn');
+        const imageInput = document.getElementById('image-input');
+
+        attachBtn.onclick = () => imageInput.click();
+
+        imageInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    // Сжимаем картинку перед отправкой, чтобы она быстро передавалась по MQTT
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    const MAX_WIDTH = 800;
+                    const MAX_HEIGHT = 800;
+
+                    if (width > height) {
+                        if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+                    } else {
+                        if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);
+
+                    client.publish('my_custom_room_' + myRoom, JSON.stringify({ type: 'image', id: myId, name: myName, image: compressedBase64 }));
+                    saveAndAddMessage(myName, compressedBase64, true, 'image');
+                    imageInput.value = '';
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        function renderMessageDOM(author, content, isMe, type, scrollDown = true) {
             let box = document.getElementById('messages');
             let div = document.createElement('div');
             div.className = `flex gap-2.5 items-end animate-slide-up ${isMe ? 'flex-row-reverse' : 'flex-row'}`;
             
             const firstLetter = author.charAt(0).toUpperCase();
             const avatarColor = getColorForName(author);
-            const cleanText = censorText(text);
 
-            div.innerHTML = `
-                <div class="w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${avatarColor} shadow-sm">${firstLetter}</div>
-                <div class="max-w-[78%] space-y-0.5">
-                    ${!isMe ? `<p class="text-[10px] text-slate-300 ml-1 font-medium">${escapeHTML(author)}</p>` : ''}
-                    <div class="p-3 rounded-2xl text-xs break-words shadow-md ${isMe ? 'bg-blue-600 text-white rounded-br-xs' : 'bg-slate-800/80 border border-white/10 text-slate-100 rounded-bl-xs'}">
-                        ${escapeHTML(cleanText)}
-                    </div>
-                </div>
-            `;
-            box.appendChild(div);
-            box.scrollTop = box.scrollHeight;
-        }
+            let innerHTMLContent = '';
 
-        // Показ ГС в чате
-        function addAudioMessage(author, audioBase64, isMe) {
-            let box = document.getElementById('messages');
-            let div = document.createElement('div');
-            div.className = `flex gap-2.5 items-end animate-slide-up ${isMe ? 'flex-row-reverse' : 'flex-row'}`;
-
-            const firstLetter = author.charAt(0).toUpperCase();
-            const avatarColor = getColorForName(author);
-
-            div.innerHTML = `
-                <div class="w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${avatarColor} shadow-sm">${firstLetter}</div>
-                <div class="max-w-[78%] space-y-0.5">
-                    ${!isMe ? `<p class="text-[10px] text-slate-300 ml-1 font-medium">${escapeHTML(author)}</p>` : ''}
+            if (type === 'text') {
+                const cleanText = censorText(content);
+                innerHTMLContent = `<div class="p-3 rounded-2xl text-xs break-words shadow-md ${isMe ? 'bg-blue-600 text-white rounded-br-xs' : 'bg-slate-800/80 border border-white/10 text-slate-100 rounded-bl-xs'}">${escapeHTML(cleanText)}</div>`;
+            } else if (type === 'audio') {
+                innerHTMLContent = `
                     <div class="p-2.5 rounded-2xl shadow-md ${isMe ? 'bg-blue-600 text-white rounded-br-xs' : 'bg-slate-800/80 border border-white/10 text-slate-100 rounded-bl-xs'}">
                         <audio controls class="h-8 w-48 rounded-lg max-w-full">
-                            <source src="${audioBase64}" type="audio/webm">
+                            <source src="${content}" type="audio/webm">
                         </audio>
-                    </div>
+                    </div>`;
+            } else if (type === 'image') {
+                innerHTMLContent = `
+                    <div class="p-1.5 rounded-2xl shadow-md bg-slate-900/80 border border-white/10 overflow-hidden">
+                        <img src="${content}" onclick="openImageModal('${content}')" class="w-44 h-auto rounded-xl cursor-pointer hover:opacity-95 transition object-cover">
+                    </div>`;
+            }
+
+            div.innerHTML = `
+                <div class="w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${avatarColor} shadow-sm">${firstLetter}</div>
+                <div class="max-w-[78%] space-y-0.5">
+                    ${!isMe ? `<p class="text-[10px] text-slate-300 ml-1 font-medium">${escapeHTML(author)}</p>` : ''}
+                    ${innerHTMLContent}
                 </div>
             `;
             box.appendChild(div);
-            box.scrollTop = box.scrollHeight;
+            if (scrollDown) box.scrollTop = box.scrollHeight;
         }
 
-        // 🎙️ ЛОГИКА ЗАПИСИ ГОЛОСОВЫХ СООБЩЕНИЙ
+        // Просмотр картинки в модальном окне
+        function openImageModal(src) {
+            document.getElementById('modal-img').src = src;
+            document.getElementById('image-modal').classList.remove('hidden');
+            document.getElementById('image-modal').classList.add('flex');
+        }
+
+        function closeImageModal() {
+            document.getElementById('image-modal').classList.add('hidden');
+            document.getElementById('image-modal').classList.remove('flex');
+        }
+
+        // Запись голосовых сообщений
         let mediaRecorder, audioChunks = [], isRecording = false, recTimerInterval, seconds = 0;
         const micBtn = document.getElementById('mic-btn');
         const recTimer = document.getElementById('rec-timer');
+        const micIcon = document.getElementById('mic-icon');
 
         micBtn.onclick = async () => {
             if (!isRecording) {
@@ -318,15 +422,16 @@
                         reader.onloadend = () => {
                             const base64Audio = reader.result;
                             client.publish('my_custom_room_' + myRoom, JSON.stringify({ type: 'audio', id: myId, name: myName, audio: base64Audio }));
-                            addAudioMessage(myName, base64Audio, true);
+                            saveAndAddMessage(myName, base64Audio, true, 'audio');
                         };
                         stream.getTracks().forEach(track => track.stop());
                     };
 
                     mediaRecorder.start();
                     isRecording = true;
-                    micBtn.classList.replace('bg-slate-800', 'bg-red-600');
+                    micBtn.classList.replace('bg-slate-900/80', 'bg-red-600');
                     micBtn.classList.add('animate-pulse');
+                    micIcon.classList.add('hidden');
                     recTimer.classList.remove('hidden');
 
                     seconds = 0;
@@ -344,9 +449,10 @@
             } else {
                 mediaRecorder.stop();
                 isRecording = false;
-                micBtn.classList.replace('bg-red-600', 'bg-slate-800');
+                micBtn.classList.replace('bg-red-600', 'bg-slate-900/80');
                 micBtn.classList.remove('animate-pulse');
                 recTimer.classList.add('hidden');
+                micIcon.classList.remove('hidden');
                 clearInterval(recTimerInterval);
             }
         };
@@ -376,4 +482,4 @@
         }
     </script>
 </body>
-    </html>
+</html>
