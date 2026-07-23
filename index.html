@@ -97,31 +97,31 @@
 
             <div id="messages" class="h-72 bg-slate-950/40 rounded-2xl p-3 overflow-y-auto space-y-2 border border-white/5 text-sm scroll-smooth"></div>
 
-            <form id="msg-form" class="flex gap-2 items-center">
+            <form id="msg-form" class="flex gap-1.5 items-center">
                 <!-- Скрытый инпут для выбора фото -->
                 <input type="file" id="image-input" accept="image/*" class="hidden">
 
                 <!-- Кнопка скрепки (отправка фото) -->
                 <button type="button" id="attach-btn" title="Отправить фото"
-                    class="bg-slate-900/80 hover:bg-slate-800 active:scale-95 text-slate-300 hover:text-blue-400 p-3 rounded-2xl transition border border-white/10 flex items-center justify-center shrink-0 shadow-sm">
+                    class="bg-slate-900/80 hover:bg-slate-800 active:scale-95 text-slate-300 hover:text-blue-400 p-2.5 rounded-2xl transition border border-white/10 flex items-center justify-center shrink-0 shadow-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 -rotate-45" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
                     </svg>
                 </button>
 
                 <input type="text" id="msg-input" placeholder="Напиши сообщение..." autocomplete="off" 
-                    class="flex-1 bg-slate-950/60 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all">
+                    class="min-w-0 flex-1 bg-slate-950/60 border border-white/10 rounded-2xl px-3.5 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all">
                 
                 <!-- Кнопка микрофона -->
                 <button type="button" id="mic-btn" title="Голосовое сообщение"
-                    class="bg-slate-900/80 hover:bg-slate-800 active:scale-95 text-slate-300 hover:text-red-400 p-3 rounded-2xl transition border border-white/10 flex items-center justify-center shrink-0 shadow-sm">
+                    class="bg-slate-900/80 hover:bg-slate-800 active:scale-95 text-slate-300 hover:text-red-400 p-2.5 rounded-2xl transition border border-white/10 flex items-center justify-center shrink-0 shadow-sm">
                     <svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
                     <span id="rec-timer" class="hidden text-xs font-bold text-red-400 ml-1">00:00</span>
                 </button>
 
                 <!-- Кнопка отправки текста -->
                 <button type="submit" title="Отправить"
-                    class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white p-3 rounded-2xl transition shadow-md shadow-blue-600/20 flex items-center justify-center shrink-0">
+                    class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white p-2.5 rounded-2xl transition shadow-md shadow-blue-600/20 flex items-center justify-center shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
                 </button>
             </form>
@@ -251,7 +251,6 @@
             });
         };
 
-        // Работа с локальной историей на 1 день для каждой комнаты
         function getStorageKey() {
             return 'chat_history_room_' + myRoom;
         }
@@ -264,7 +263,6 @@
                 if (!rawData) return;
                 let data = JSON.parse(rawData);
                 
-                // Проверяем, не прошло ли больше 1 дня (24 часа)
                 if (Date.now() - data.timestamp > 24 * 60 * 60 * 1000) {
                     localStorage.removeItem(getStorageKey());
                     return;
@@ -283,7 +281,6 @@
                 let chatData = rawData ? JSON.parse(rawData) : { timestamp: Date.now(), messages: [] };
                 
                 chatData.messages.push({ author, content, isMe, type });
-                // Ограничим до последних 150 сообщений, чтобы не забивать память
                 if (chatData.messages.length > 150) chatData.messages.shift();
 
                 localStorage.setItem(key, JSON.stringify(chatData));
@@ -295,7 +292,6 @@
             renderMessageDOM(author, content, isMe, type, true);
         }
 
-        // Отправка текста
         document.getElementById('msg-form').onsubmit = (e) => {
             e.preventDefault();
             let input = document.getElementById('msg-input');
@@ -307,7 +303,6 @@
             input.value = '';
         };
 
-        // Отправка фотографий через скрепку
         const attachBtn = document.getElementById('attach-btn');
         const imageInput = document.getElementById('image-input');
 
@@ -321,7 +316,6 @@
             reader.onload = (event) => {
                 const img = new Image();
                 img.onload = () => {
-                    // Сжимаем картинку перед отправкой, чтобы она быстро передавалась по MQTT
                     const canvas = document.createElement('canvas');
                     let width = img.width;
                     let height = img.height;
@@ -388,7 +382,6 @@
             if (scrollDown) box.scrollTop = box.scrollHeight;
         }
 
-        // Просмотр картинки в модальном окне
         function openImageModal(src) {
             document.getElementById('modal-img').src = src;
             document.getElementById('image-modal').classList.remove('hidden');
@@ -400,7 +393,6 @@
             document.getElementById('image-modal').classList.remove('flex');
         }
 
-        // Запись голосовых сообщений
         let mediaRecorder, audioChunks = [], isRecording = false, recTimerInterval, seconds = 0;
         const micBtn = document.getElementById('mic-btn');
         const recTimer = document.getElementById('rec-timer');
