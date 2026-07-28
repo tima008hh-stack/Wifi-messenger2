@@ -60,6 +60,44 @@
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(150, 150, 150, 0.25); border-radius: 10px; }
+
+        /* ===== ФИКС СВЕТЛОЙ ТЕМЫ ===== */
+        body:not(.dark) {
+            background-color: #f1f5f9 !important;
+        }
+        /* Осветляем фоны панелей */
+        body:not(.dark) .bg-slate-950, 
+        body:not(.dark) .bg-slate-900,
+        body:not(.dark) #settings-modal > div,
+        body:not(.dark) #login-modal > div {
+            background-color: #ffffff !important;
+            border-color: #e2e8f0 !important;
+        }
+        /* Осветляем инпуты */
+        body:not(.dark) input {
+            background-color: #f8fafc !important;
+            color: #0f172a !important;
+            border-color: #cbd5e1 !important;
+        }
+        /* Делаем текст темным (кроме текста внутри синих/красных кнопок) */
+        body:not(.dark) h1, 
+        body:not(.dark) h2, 
+        body:not(.dark) h3,
+        body:not(.dark) label,
+        body:not(.dark) .text-slate-100,
+        body:not(.dark) .text-slate-300 {
+            color: #0f172a !important;
+        }
+        /* Второстепенный текст */
+        body:not(.dark) .text-slate-400 {
+            color: #64748b !important;
+        }
+        /* Осветляем кнопки-иконки и чужие сообщения */
+        body:not(.dark) .bg-slate-800 {
+            background-color: #f1f5f9 !important;
+            border-color: #cbd5e1 !important;
+            color: #0f172a !important;
+        }
     </style>
 </head>
 <body id="app-body" class="dark bg-slate-950 text-slate-100 font-sans select-none overflow-hidden h-full w-full">
@@ -1115,19 +1153,28 @@
             document.getElementById('image-modal').classList.remove('flex');
         }
 
-        // --- ИСПРАВЛЕННЫЕ WebRTC ЗВОНКИ И ПЕРЕДАЧА ЗВУКА ---
+        // --- ИСПРАВЛЕННЫЕ WebRTC ЗВОНКИ С TURN-СЕРВЕРОМ ---
         let peerConnection;
         let localStream;
         let callTargetId = null;
         let isVideoCall = true;
         let iceCandidatesQueue = [];
 
-        // Общедоступные быстрые STUN-серверы Google
+        // STUN и TURN серверы (помогают пробивать роутеры и мобильные сети)
         const rtcConfig = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' }
+                {
+                    urls: 'turn:openrelay.metered.ca:80',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                },
+                {
+                    urls: 'turn:openrelay.metered.ca:443',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                }
             ]
         };
 
@@ -1194,7 +1241,7 @@
                     hasVideo: isVideoCall
                 }));
             } catch (err) {
-                alert('Не удалось получить доступ к микрофону или камере!');
+                alert('Не удалось получить доступ к микрофону или камере! Убедись, что сайт открыт по HTTPS или локально.');
                 endCall();
             }
         }
