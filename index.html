@@ -46,6 +46,34 @@
             animation: callPulse 1.5s infinite cubic-bezier(0.4, 0, 0.6, 1);
         }
 
+        /* Плавные анимации окна звонка */
+        @keyframes callModalEnter {
+            from { opacity: 0; transform: scale(0.985); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes callPanelEnter {
+            from { opacity: 0; transform: translateY(18px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .call-modal-enter {
+            animation: callModalEnter 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        #active-call-modal > div:last-child {
+            animation: callPanelEnter 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        #active-call-modal button, #incoming-call-modal button {
+            transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms ease, box-shadow 180ms ease;
+        }
+        #active-call-modal button:active, #incoming-call-modal button:active {
+            transform: scale(0.92);
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .call-modal-enter, #active-call-modal > div:last-child {
+                animation: none !important;
+                transition: none !important;
+            }
+        }
+
         /* Полный экран для мобильных */
         html, body {
             width: 100%;
@@ -98,7 +126,194 @@
             border-color: #cbd5e1 !important;
             color: #0f172a !important;
         }
-    </style>
+    
+/* ===== DESKTOP TELEGRAM-LIKE LAYOUT ===== */
+@media (min-width: 768px) {
+    #app-container { background: #0d1117; }
+    #sidebar { position: relative; z-index: 2; }
+    #chat-area { min-width: 0; }
+    #chat-header { min-height: 68px; padding: 10px 22px !important; background: rgba(15, 20, 27, .88) !important; border-color: rgba(148,163,184,.08) !important; }
+    #messages { max-width: 1080px; width: 100%; margin: 0 auto; }
+    #input-container { padding: 12px 22px 18px !important; }
+    #msg-form { max-width: 920px !important; width: 100%; }
+    #chats-list { scrollbar-width: thin; scrollbar-color: rgba(148,163,184,.18) transparent; }
+}
+.tg-search-wrap {
+    position: relative; height: 42px; display: flex; align-items: center;
+    background: rgba(2, 6, 23, .56); border: 1px solid rgba(148,163,184,.09);
+    border-radius: 13px; transition: border-color .2s, box-shadow .2s, background .2s;
+}
+.tg-search-wrap:focus-within { border-color: rgba(96,165,250,.34); background: rgba(2,6,23,.78); box-shadow: 0 0 0 3px rgba(59,130,246,.07); }
+.tg-search-icon { width: 18px; height: 18px; color: #64748b; margin-left: 13px; flex: 0 0 auto; }
+#chat-search { min-width: 0; flex: 1; height: 100%; padding: 0 10px; border: 0 !important; outline: 0 !important; background: transparent !important; color: #e5e7eb; font-size: 14px; box-shadow: none !important; }
+#chat-search::placeholder { color: #64748b; }
+.tg-search-clear { width: 30px !important; height: 30px !important; margin-right: 5px; padding: 6px !important; border: 0 !important; background: transparent !important; color: #64748b; box-shadow: none !important; }
+.tg-search-clear svg { width: 17px; height: 17px; }
+.tg-chat-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; padding: 3px; border-radius: 11px; background: rgba(2,6,23,.34); }
+.tg-chat-tabs button { height: 30px; padding: 0 8px !important; border: 0 !important; border-radius: 8px !important; background: transparent !important; color: #64748b !important; font-size: 11px !important; font-weight: 700 !important; box-shadow: none !important; }
+.tg-chat-tabs button.active { background: rgba(59,130,246,.16) !important; color: #93c5fd !important; box-shadow: inset 0 0 0 1px rgba(96,165,250,.12) !important; }
+.tg-chat-tabs button:hover { color: #cbd5e1 !important; transform: none !important; }
+.tg-chat-item { position: relative; margin: 1px 0; border-radius: 13px !important; border: 1px solid transparent !important; padding: 9px 10px !important; }
+.tg-chat-item:hover { background: rgba(148,163,184,.055) !important; }
+.tg-chat-item.tg-active { background: linear-gradient(135deg, rgba(59,130,246,.20), rgba(37,99,235,.10)) !important; border-color: rgba(96,165,250,.13) !important; box-shadow: inset 3px 0 0 #3b82f6; }
+.tg-chat-avatar { width: 46px !important; height: 46px !important; border-radius: 50% !important; font-size: 14px !important; box-shadow: 0 5px 18px rgba(0,0,0,.18); }
+.tg-chat-name { font-size: 13px !important; }
+.tg-chat-meta { font-size: 11px !important; color: #64748b !important; margin-top: 2px; }
+.tg-section-label { padding: 11px 10px 5px !important; font-size: 10px !important; color: #64748b !important; letter-spacing: .12em !important; }
+.tg-chat-pane { background-image: radial-gradient(circle at 50% 35%, rgba(37,99,235,.035), transparent 34%), linear-gradient(rgba(2,6,23,.12), rgba(2,6,23,.12)); }
+.message-status-icon { font-size: 10px; font-weight: 800; letter-spacing: -2px; display: inline-block; min-width: 18px; text-align: center; filter: drop-shadow(0 1px 2px rgba(0,0,0,.22)); }
+.message-status { pointer-events: none; z-index: 3; }
+.message-status-icon { transition: color .2s ease, transform .2s ease; }
+.message-status[data-status="read"] .message-status-icon { animation: statusPop .18s ease-out; }
+@keyframes statusPop { from { transform: scale(.75); opacity:.5 } to { transform: scale(1); opacity:1 } }
+.tg-messages { scrollbar-width: thin; scrollbar-color: rgba(148,163,184,.16) transparent; }
+.tg-messages::-webkit-scrollbar, #chats-list::-webkit-scrollbar { width: 7px; }
+.tg-messages::-webkit-scrollbar-thumb, #chats-list::-webkit-scrollbar-thumb { background: rgba(148,163,184,.16); border-radius: 99px; }
+@media (max-width: 767px) { .tg-chat-tabs, .tg-search-wrap { display: none; } }
+
+/* ===== PREMIUM APP UI / SVG ICON SYSTEM ===== */
+.icon-button, #app-container button {
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+}
+#app-container button {
+    transition: transform .18s cubic-bezier(.22,1,.36,1), background-color .2s ease, border-color .2s ease, box-shadow .2s ease, color .2s ease;
+}
+#app-container button:hover { transform: translateY(-1px); }
+#app-container button:active { transform: scale(.94); }
+#sidebar, #chat-header, #input-container {
+    box-shadow: inset 0 -1px 0 rgba(255,255,255,.025);
+}
+#chat-header { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+#input-container { background: linear-gradient(180deg, rgba(15,23,42,.86), rgba(2,6,23,.96)) !important; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
+#msg-form { padding: 5px; border: 1px solid rgba(148,163,184,.11); border-radius: 21px; background: rgba(15,23,42,.62); box-shadow: 0 12px 40px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.035); }
+#msg-input { border-color: transparent !important; background: transparent !important; box-shadow: none !important; }
+#msg-input:focus { border-color: transparent !important; }
+#attach-btn, #mic-btn, #msg-form > button[type="submit"] { border-color: transparent !important; box-shadow: none !important; }
+#attach-btn:hover, #mic-btn:hover { background: rgba(148,163,184,.12) !important; }
+#msg-form > button[type="submit"] { border-radius: 16px; }
+.empty-state-icon { width: 68px; height: 68px; display: grid; place-items: center; border-radius: 22px; color: #60a5fa; background: linear-gradient(145deg, rgba(59,130,246,.16), rgba(99,102,241,.07)); border: 1px solid rgba(96,165,250,.15); box-shadow: 0 18px 50px rgba(37,99,235,.12), inset 0 1px 0 rgba(255,255,255,.06); animation: emptyFloat 3s ease-in-out infinite; }
+.empty-state-icon svg { width: 30px; height: 30px; }
+@keyframes emptyFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
+.mic-meter { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+.mic-meter svg { overflow: visible; }
+.mic-meter .mic-base { color: rgba(148,163,184,.72); }
+.mic-meter .mic-level { color: #35d27b; transition: opacity .08s linear; filter: drop-shadow(0 0 4px rgba(53,210,123,.32)); }
+#mic-btn.is-recording { background: rgba(239,68,68,.12) !important; border-color: rgba(248,113,113,.22) !important; }
+#mic-btn.is-recording .mic-meter .mic-base { color: rgba(248,113,113,.48); }
+#mic-btn.is-recording .mic-meter .mic-level { color: #35d27b; }
+#toggle-mic-btn .mic-level { transition: opacity .07s linear; }
+#toggle-mic-btn.is-off .mic-level { opacity: 0 !important; }
+#toggle-mic-btn.is-off .mic-base { color: #fca5a5; }
+@media (prefers-reduced-motion: reduce) { .empty-state-icon { animation: none; } }
+
+/* ===== ДОПОЛНИТЕЛЬНЫЕ ФИШКИ: реакции + печатает + аудиозвонок ===== */
+.message-shell { position: relative; }
+.message-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+    opacity: 0;
+    transform: translateY(3px);
+    pointer-events: none;
+    transition: opacity .16s ease, transform .16s cubic-bezier(.22,1,.36,1);
+}
+.message-shell:hover .message-actions,
+.message-actions:focus-within { opacity: 1; transform: translateY(0); pointer-events: auto; }
+.message-action-btn {
+    width: 28px; height: 28px; border-radius: 10px;
+    display: grid; place-items: center;
+    background: rgba(30,41,59,.88);
+    border: 1px solid rgba(148,163,184,.14);
+    font-size: 14px;
+    transition: transform .14s ease, background .14s ease, border-color .14s ease;
+}
+.message-action-btn:hover { transform: translateY(-2px) scale(1.05); background: rgba(59,130,246,.16); border-color: rgba(96,165,250,.25); }
+.message-action-btn:active { transform: scale(.9); }
+.message-reaction-list { display:flex; flex-wrap:wrap; gap:4px; margin-top:5px; }
+.message-reaction-chip {
+    display:inline-flex; align-items:center; gap:4px;
+    min-height:24px; padding:2px 7px;
+    border-radius:999px;
+    background:rgba(30,41,59,.82);
+    border:1px solid rgba(148,163,184,.12);
+    color:#e2e8f0; font-size:12px;
+    transition:transform .14s ease, background .14s ease, border-color .14s ease;
+}
+.message-reaction-chip.mine { background:rgba(37,99,235,.18); border-color:rgba(96,165,250,.35); }
+.message-reaction-chip:hover { transform:translateY(-1px); }
+.typing-indicator {
+    color:#60a5fa !important;
+    animation: typingGlow 1.4s ease-in-out infinite;
+}
+@keyframes typingGlow { 0%,100%{opacity:.7} 50%{opacity:1} }
+.call-audio-orb {
+    width:128px; height:128px; border-radius:50%;
+    display:grid; place-items:center;
+    background:radial-gradient(circle at 35% 30%, rgba(96,165,250,.35), rgba(37,99,235,.12) 46%, rgba(15,23,42,.2) 70%);
+    border:1px solid rgba(148,163,184,.16);
+    box-shadow:0 0 0 18px rgba(59,130,246,.045), 0 22px 70px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.09);
+    animation: callOrb 2.2s ease-in-out infinite;
+}
+.call-audio-wave { display:flex; align-items:center; justify-content:center; gap:5px; height:42px; }
+.call-audio-wave span { width:4px; border-radius:999px; background:linear-gradient(to top,#22c55e,#60a5fa); animation: callWave 900ms ease-in-out infinite; }
+.call-audio-wave span:nth-child(1){height:13px;animation-delay:-.4s}.call-audio-wave span:nth-child(2){height:25px;animation-delay:-.25s}.call-audio-wave span:nth-child(3){height:37px;animation-delay:-.1s}.call-audio-wave span:nth-child(4){height:21px;animation-delay:-.32s}.call-audio-wave span:nth-child(5){height:30px;animation-delay:-.18s}
+@keyframes callOrb { 0%,100%{transform:scale(1)} 50%{transform:scale(1.035)} }
+@keyframes callWave { 0%,100%{transform:scaleY(.55);opacity:.65} 50%{transform:scaleY(1);opacity:1} }
+@media (max-width: 767px) {
+    .message-actions { opacity:1; transform:none; pointer-events:auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .message-actions, .typing-indicator, .call-audio-orb, .call-audio-wave span { animation:none !important; transition:none !important; }
+}
+
+
+/* ===== PREMIUM TELEGRAM-INSPIRED CALL UI ===== */
+.call-glass {
+    background: linear-gradient(180deg, rgba(20, 27, 38, .86), rgba(9, 14, 22, .94));
+    border: 1px solid rgba(255,255,255,.09);
+    box-shadow: 0 30px 90px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.05);
+    backdrop-filter: blur(28px) saturate(145%);
+}
+.call-control {
+    width: 56px; height: 56px; border-radius: 18px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: rgba(255,255,255,.92); background: rgba(255,255,255,.085);
+    border: 1px solid rgba(255,255,255,.075);
+    box-shadow: 0 10px 30px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.05);
+    transition: transform .22s cubic-bezier(.22,1,.36,1), background .22s ease, box-shadow .22s ease;
+}
+.call-control:hover { transform: translateY(-2px) scale(1.025); background: rgba(255,255,255,.13); box-shadow: 0 14px 35px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.07); }
+.call-control:active { transform: scale(.91); }
+.call-control.is-off { background: rgba(239,68,68,.18); border-color: rgba(248,113,113,.22); color: #fca5a5; }
+.call-end {
+    width: 62px; height: 62px; border-radius: 22px; color: #fff;
+    background: linear-gradient(180deg,#ff5d67,#ed3445);
+    box-shadow: 0 16px 38px rgba(239,68,68,.34), inset 0 1px 0 rgba(255,255,255,.18);
+}
+.call-end:hover { background: linear-gradient(180deg,#ff6871,#f13d4d); transform: translateY(-2px) scale(1.025); }
+.call-answer {
+    background: linear-gradient(180deg,#35d27b,#16b866) !important;
+    box-shadow: 0 18px 42px rgba(16,185,129,.32), inset 0 1px 0 rgba(255,255,255,.2) !important;
+}
+.call-avatar-ring { position: relative; }
+.call-avatar-ring::before, .call-avatar-ring::after {
+    content: ''; position: absolute; inset: -13px; border-radius: 50%;
+    border: 1px solid rgba(53,210,123,.22); animation: callRing 2.2s ease-out infinite;
+}
+.call-avatar-ring::after { inset: -25px; animation-delay: .75s; opacity: .65; }
+@keyframes callRing { 0% { transform: scale(.78); opacity: .75; } 75%,100% { transform: scale(1.14); opacity: 0; } }
+.call-name-glow { text-shadow: 0 2px 24px rgba(0,0,0,.5); }
+.call-bottom-bar { padding: 18px 22px calc(18px + env(safe-area-inset-bottom)); }
+.call-incoming-card { animation: callCardIn .42s cubic-bezier(.16,1,.3,1) both; }
+@keyframes callCardIn { from { opacity: 0; transform: translateY(18px) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.call-fade-in { animation: callFade .34s ease both; }
+@keyframes callFade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+    .call-avatar-ring::before, .call-avatar-ring::after, .call-incoming-card, .call-fade-in { animation: none !important; }
+}
+</style>
 </head>
 <body id="app-body" class="dark bg-slate-950 text-slate-100 font-sans select-none overflow-hidden h-full w-full">
 
@@ -181,7 +396,7 @@
     <div id="app-container" class="hidden w-full h-full flex flex-col md:flex-row overflow-hidden inset-0 absolute">
         
         <!-- Левая панель: профиль и контакты -->
-        <aside id="sidebar" class="w-full md:w-80 lg:w-96 bg-slate-900 dark:bg-slate-900 border-r border-slate-800 flex flex-col h-full shrink-0 transition-all">
+        <aside id="sidebar" class="w-full md:w-[360px] lg:w-[390px] xl:w-[410px] bg-slate-900/95 dark:bg-slate-900/95 border-r border-slate-800/80 flex flex-col h-full shrink-0 transition-all shadow-[12px_0_50px_rgba(0,0,0,.12)]">
             <!-- Профиль -->
             <div class="p-3.5 border-b border-slate-800 flex items-center justify-between shrink-0">
                 <div class="flex items-center gap-3 min-w-0">
@@ -192,17 +407,28 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-1.5">
-                    <button type="button" id="settings-btn" title="Настройки" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition active:scale-90 text-sm">
-                        ⚙️
+                    <button type="button" id="settings-btn" title="Настройки" aria-label="Настройки" class="icon-button p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition active:scale-90 text-sm">
+                        <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06-1.42 1.42-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V20h-2v-.09a1.7 1.7 0 0 0-1.03-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06-1.42-1.42.06-.06A1.7 1.7 0 0 0 9.44 15a1.7 1.7 0 0 0-1.56-1.03H7.8v-2h.08A1.7 1.7 0 0 0 9.44 10a1.7 1.7 0 0 0-.34-1.87l-.06-.06 1.42-1.42.06.06a1.7 1.7 0 0 0 1.87.34A1.7 1.7 0 0 0 13.5 5.5V5.4h2v.1a1.7 1.7 0 0 0 1.03 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06 1.42 1.42-.06.06a1.7 1.7 0 0 0-.34 1.87 1.7 1.7 0 0 0 1.56 1.03h.09v2h-.09A1.7 1.7 0 0 0 19.4 15Z"/></svg>
                     </button>
-                    <button type="button" id="logout-btn" title="Выйти из аккаунта" class="p-2 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-800/40 text-red-300 transition active:scale-90 text-sm">
-                        🚪
+                    <button type="button" id="logout-btn" title="Выйти из аккаунта" aria-label="Выйти из аккаунта" class="icon-button p-2 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-800/40 text-red-300 transition active:scale-90 text-sm">
+                        <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5H6.8A1.8 1.8 0 0 0 5 6.8v10.4A1.8 1.8 0 0 0 6.8 19H10"/><path d="M14 8l4 4-4 4"/><path d="M18 12H9"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Поиск как в Telegram -->
+            <div class="px-3 pt-3 pb-2 shrink-0">
+                <div class="tg-search-wrap">
+                    <svg class="tg-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+                    <input id="chat-search" type="search" placeholder="Поиск" autocomplete="off" spellcheck="false">
+                    <button id="clear-chat-search" type="button" class="tg-search-clear hidden" aria-label="Очистить поиск">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 7 10 10M17 7 7 17"/></svg>
                     </button>
                 </div>
             </div>
 
             <!-- Добавить друга / комнату -->
-            <div class="p-2.5 border-b border-slate-800 flex gap-2 shrink-0">
+            <div class="px-3 pb-2 flex gap-2 shrink-0">
                 <button id="add-friend-btn" type="button" class="flex-1 bg-blue-600/10 hover:bg-blue-600/20 active:scale-95 border border-blue-500/30 text-blue-400 py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0 112 0v1H3v-1z"/></svg>
                     <span>+ Друг</span>
@@ -213,19 +439,28 @@
                 </button>
             </div>
 
+            <!-- Фильтры списка -->
+            <div class="px-3 pb-2 shrink-0">
+                <div class="tg-chat-tabs" id="chat-filter-tabs">
+                    <button type="button" class="active" data-filter="all">Все</button>
+                    <button type="button" data-filter="direct">Личные</button>
+                    <button type="button" data-filter="room">Группы</button>
+                </div>
+            </div>
+
             <!-- Список контактов -->
-            <div class="flex-1 overflow-y-auto p-2 space-y-1" id="chats-list"></div>
+            <div class="flex-1 overflow-y-auto px-2 pb-3 space-y-0.5 tg-scroll" id="chats-list"></div>
         </aside>
 
         <!-- Чат -->
-        <main id="chat-area" class="hidden md:flex flex-1 flex-col h-full bg-slate-950 dark:bg-slate-950 relative overflow-hidden">
+        <main id="chat-area" class="hidden md:flex flex-1 flex-col h-full bg-[#0d1117] dark:bg-[#0d1117] relative overflow-hidden tg-chat-pane">
             <!-- Шапка чата -->
             <div id="chat-header" class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 shrink-0">
                 <div class="flex items-center gap-3 min-w-0">
-                    <button id="back-to-sidebar-btn" type="button" class="md:hidden p-1.5 text-slate-300 hover:text-white text-xl font-bold active:scale-90 transition">
-                        ←
+                    <button id="back-to-sidebar-btn" type="button" aria-label="Назад" class="icon-button md:hidden p-1.5 text-slate-300 hover:text-white active:scale-90 transition">
+                        <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg>
                     </button>
-                    <div id="active-avatar" class="w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-sm shadow-md shrink-0 bg-blue-600 overflow-hidden bg-cover bg-center">💬</div>
+                    <div id="active-avatar" class="w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-sm shadow-md shrink-0 bg-blue-600 overflow-hidden bg-cover bg-center"><svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 11.5a7.5 7.5 0 0 1-8 7.5 8.6 8.6 0 0 1-3.1-.58L4 20l1.57-3.1A7.1 7.1 0 0 1 4.5 12c0-4.14 3.36-7.5 7.5-7.5s8 2.86 8 7Z"/></svg></div>
                     <div class="min-w-0">
                         <h2 class="font-bold text-base text-slate-100 dark:text-white truncate leading-tight" id="active-chat-title">Выбери чат</h2>
                         <p class="text-xs text-slate-400 truncate" id="active-chat-subtitle">Нажми на друга или комнату слева</p>
@@ -234,11 +469,8 @@
 
                 <!-- Кнопки звонков для ЛС -->
                 <div id="call-buttons-container" class="hidden flex items-center gap-2 shrink-0">
-                    <button type="button" id="start-voice-call-btn" title="Аудиозвонок" class="p-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-400 transition active:scale-90 shadow-sm flex items-center justify-center">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2a1.003 1.003 0 011.02-.24c1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-                    </button>
-                    <button type="button" id="start-video-call-btn" title="Видеозвонок" class="p-2.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-400 transition active:scale-90 shadow-sm flex items-center justify-center">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+                    <button type="button" id="start-voice-call-btn" title="Аудиозвонок" class="p-2.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-400 transition active:scale-90 shadow-sm flex items-center justify-center">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.8 19.8 0 0 1 3.08 5.18 2 2 0 0 1 5.06 3h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.63a2 2 0 0 1-.45 2.11L9 10.73a16 16 0 0 0 4.27 4.27l1.27-1.23a2 2 0 0 1 2.11-.45c.85.29 1.73.5 2.63.62A2 2 0 0 1 22 16.92Z"/></svg>
                     </button>
                 </div>
 
@@ -251,7 +483,7 @@
             <!-- Сообщения -->
             <div id="messages" class="flex-1 p-4 overflow-y-auto space-y-3 scroll-smooth">
                 <div id="no-chat-placeholder" class="h-full flex flex-col items-center justify-center text-slate-500 text-sm gap-2">
-                    <span class="text-4xl animate-bounce">💬</span>
+                    <span class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 11.5a7.5 7.5 0 0 1-8 7.5 8.6 8.6 0 0 1-3.1-.58L4 20l1.57-3.1A7.1 7.1 0 0 1 4.5 12c0-4.14 3.36-7.5 7.5-7.5s8 2.86 8 7Z"/><path d="M8 12h.01M12 12h.01M16 12h.01"/></svg></span>
                     <span>Выбери чат слева, чтобы начать писать</span>
                 </div>
             </div>
@@ -273,7 +505,7 @@
                     
                     <button type="button" id="mic-btn" title="Голосовое сообщение"
                         class="bg-slate-800 hover:bg-slate-700 active:scale-90 text-slate-300 hover:text-red-400 p-2.5 rounded-2xl transition border border-slate-700 flex items-center justify-center shrink-0">
-                        <svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+                        <span class="mic-meter" aria-hidden="true"><svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><defs><clipPath id="mic-level-clip"><rect id="mic-level-rect" x="0" y="24" width="24" height="0"/></clipPath></defs><g class="mic-base"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/></g><g class="mic-level" clip-path="url(#mic-level-clip)"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/></g></svg></span>
                         <span id="rec-timer" class="hidden text-xs font-bold text-red-400 ml-1">00:00</span>
                     </button>
 
@@ -288,48 +520,45 @@
 
     <!-- Входящий звонок Модалка -->
     <div id="incoming-call-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden">
-        <div class="w-full max-w-sm bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-2xl text-center space-y-5 animate-fade-in">
-            <div id="caller-avatar" class="w-20 h-20 mx-auto rounded-full bg-blue-600 flex items-center justify-center text-2xl font-bold text-white shadow-xl overflow-hidden bg-cover bg-center">?</div>
+        <div class="call-glass call-incoming-card w-full max-w-sm p-7 rounded-[28px] text-center space-y-5">
+            <div id="caller-avatar" class="call-avatar-ring w-20 h-20 mx-auto rounded-full bg-blue-600 flex items-center justify-center text-2xl font-bold text-white shadow-xl overflow-hidden bg-cover bg-center">?</div>
             <div>
                 <h3 id="caller-name" class="font-bold text-lg text-white">Имя Собеседника</h3>
                 <p id="call-type-label" class="text-xs text-blue-400 mt-0.5">Входящий вызов...</p>
             </div>
             <div class="flex gap-6 justify-center pt-2">
-                <button id="reject-call-btn" type="button" title="Отклонить" class="w-16 h-16 rounded-full bg-red-600 hover:bg-red-500 active:scale-90 text-white flex items-center justify-center shadow-lg shadow-red-600/30 transition">
+                <button id="reject-call-btn" type="button" title="Отклонить" class="call-control call-end">
                     <svg class="w-7 h-7 rotate-[135deg]" fill="currentColor" viewBox="0 0 24 24"><path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2a1.003 1.003 0 011.02-.24c1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
                 </button>
-                <button id="accept-call-btn" type="button" title="Ответить" class="w-16 h-16 rounded-full bg-emerald-500 hover:bg-emerald-400 active:scale-90 text-white flex items-center justify-center shadow-lg shadow-emerald-500/40 transition animate-call-pulse">
+                <button id="accept-call-btn" type="button" title="Ответить" class="call-control call-answer animate-call-pulse">
                     <svg class="w-7 h-7" fill="currentColor" viewBox="0 0 24 24"><path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2a1.003 1.003 0 011.02-.24c1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Окно Звонка (Видео / Голос) -->
-    <div id="active-call-modal" class="fixed inset-0 z-50 bg-slate-950 flex flex-col hidden">
-        <div class="relative flex-1 w-full h-full bg-black flex items-center justify-center overflow-hidden">
-            <video id="remote-video" autoplay playsinline class="w-full h-full object-cover"></video>
-
-            <div id="no-remote-video" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 text-white space-y-3">
+    <!-- Окно Голосового звонка -->
+    <div id="active-call-modal" class="fixed inset-0 z-50 bg-[#02060d] flex flex-col hidden call-fade-in">
+        <div class="relative flex-1 w-full h-full bg-[#050b14] flex items-center justify-center overflow-hidden">
+            <div class="absolute inset-0 opacity-60 pointer-events-none" style="background:radial-gradient(circle at 50% 35%, rgba(37,99,235,.22), transparent 42%), radial-gradient(circle at 50% 80%, rgba(34,197,94,.08), transparent 30%);"></div>
+            <div class="relative z-10 flex flex-col items-center justify-center text-white space-y-5">
+                <div class="call-audio-orb">
+                    <div class="call-audio-wave" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+                </div>
                 <div id="active-call-avatar" class="w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center text-3xl font-bold shadow-2xl overflow-hidden bg-cover bg-center">?</div>
-                <h2 id="active-call-name" class="font-bold text-xl">Собеседник</h2>
-                <p id="call-status-timer" class="text-xs text-emerald-400 font-mono">Соединение...</p>
-            </div>
-
-            <div class="absolute bottom-20 right-4 w-32 h-44 bg-slate-800 border-2 border-white/20 rounded-2xl overflow-hidden shadow-2xl z-10">
-                <video id="local-video" autoplay playsinline muted class="w-full h-full object-cover"></video>
+                <div class="text-center">
+                    <h2 id="active-call-name" class="font-bold text-xl">Собеседник</h2>
+                    <p id="call-status-timer" class="text-xs text-emerald-400 font-mono mt-1">Соединение...</p>
+                </div>
             </div>
         </div>
 
-        <div class="p-6 bg-slate-900/90 backdrop-blur-md border-t border-slate-800 flex justify-center items-center gap-6 shrink-0 z-20">
-            <button id="toggle-mic-btn" type="button" title="Микрофон" class="w-12 h-12 rounded-2xl bg-slate-800 hover:bg-slate-700 active:scale-90 text-white flex items-center justify-center text-xl transition">
-                🎙️
+        <div class="call-glass call-bottom-bar flex justify-center items-center gap-3 sm:gap-4 shrink-0 z-20">
+            <button id="toggle-mic-btn" type="button" title="Микрофон" aria-label="Микрофон" class="call-control">
+                <span class="mic-meter" aria-hidden="true"><svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><defs><clipPath id="call-mic-level-clip"><rect id="call-mic-level-rect" x="0" y="24" width="24" height="0"/></clipPath></defs><g class="mic-base"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/></g><g class="mic-level" clip-path="url(#call-mic-level-clip)"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/></g></svg></span>
             </button>
-            <button id="end-call-btn" type="button" title="Завершить вызов" class="w-16 h-16 rounded-full bg-red-600 hover:bg-red-500 active:scale-90 text-white flex items-center justify-center shadow-lg shadow-red-600/40 transition">
-                <svg class="w-7 h-7 rotate-[135deg]" fill="currentColor" viewBox="0 0 24 24"><path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2a1.003 1.003 0 011.02-.24c1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-            </button>
-            <button id="toggle-cam-btn" type="button" title="Камера" class="w-12 h-12 rounded-2xl bg-slate-800 hover:bg-slate-700 active:scale-90 text-white flex items-center justify-center text-xl transition">
-                📹
+            <button id="end-call-btn" type="button" title="Завершить вызов" aria-label="Завершить вызов" class="call-control call-end">
+                <svg class="w-7 h-7 rotate-[135deg]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.8 19.8 0 0 1 3.08 5.18 2 2 0 0 1 5.06 3h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.63a2 2 0 0 1-.45 2.11L9 10.73a16 16 0 0 0 4.27 4.27l1.27-1.23a2 2 0 0 1 2.11-.45c.85.29 1.73.5 2.63.62A2 2 0 0 1 22 16.92Z"/></svg>
             </button>
         </div>
     </div>
@@ -339,17 +568,19 @@
         <div class="w-full max-w-sm bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-2xl space-y-5 animate-fade-in">
             <div class="flex justify-between items-center border-b border-slate-800 pb-3">
                 <h3 class="font-bold text-base text-white">Настройки профиля</h3>
-                <button type="button" id="close-settings-btn" class="text-slate-400 hover:text-white text-lg">✕</button>
+                <button type="button" id="close-settings-btn" aria-label="Закрыть" class="icon-button text-slate-400 hover:text-white">
+                    <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+                </button>
             </div>
 
             <div class="space-y-2">
                 <label class="text-xs font-medium text-slate-300">Тема оформления</label>
                 <div class="flex gap-2">
                     <button type="button" id="theme-dark-btn" class="flex-1 py-2 px-3 rounded-xl border border-blue-500/50 bg-blue-600/20 text-xs font-semibold text-blue-300">
-                        🌙 Тёмная
+                        <svg viewBox="0 0 24 24" class="w-4 h-4 inline-block align-[-3px] mr-1" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.5 15.2A8.7 8.7 0 0 1 8.8 3.5 8.7 8.7 0 1 0 20.5 15.2Z"/></svg>Тёмная
                     </button>
                     <button type="button" id="theme-light-btn" class="flex-1 py-2 px-3 rounded-xl border border-slate-700 bg-slate-800 text-xs font-semibold text-slate-300">
-                        ☀️ Светлая
+                        <svg viewBox="0 0 24 24" class="w-4 h-4 inline-block align-[-3px] mr-1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/></svg>Светлая
                     </button>
                 </div>
             </div>
@@ -358,7 +589,7 @@
                 <label class="text-xs font-medium text-slate-300">Аватарка профиля</label>
                 <input type="file" id="avatar-input" accept="image/*" class="hidden">
                 <button type="button" id="upload-avatar-btn" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2.5 rounded-xl text-xs text-slate-200 font-medium flex items-center justify-center gap-2">
-                    🖼️ Загрузить своё фото
+                    <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8.5" cy="9" r="1.5"/><path d="m4 17 4.5-4 3.2 3 2.4-2.2L20 18"/></svg>Загрузить своё фото
                 </button>
             </div>
         </div>
@@ -412,96 +643,76 @@
             } catch (e) {}
         }
 
-        // --- ЗВУКИ ЗВОНКОВ И ГУДКОВ ---
-        const ringtoneAudio = new Audio('./sound.mp3');
-        ringtoneAudio.loop = true;
-
+        // --- ПРЕМИАЛЬНЫЕ ГУДКИ: Web Audio, без внешних mp3 ---
         let outgoingToneInterval = null;
         let ringAudioCtx = null;
+        let activeToneNodes = [];
+
+        function ensureRingAudio() {
+            if (!ringAudioCtx) ringAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (ringAudioCtx.state === 'suspended') ringAudioCtx.resume().catch(() => {});
+            return ringAudioCtx;
+        }
+
+        function stopToneNodes() {
+            activeToneNodes.forEach(n => { try { n.stop(); } catch(e) {} });
+            activeToneNodes = [];
+        }
+
+        function tone(freq, start, duration, volume = 0.055, type = 'sine') {
+            const ctx = ensureRingAudio();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, start);
+            gain.gain.setValueAtTime(0.0001, start);
+            gain.gain.exponentialRampToValueAtTime(volume, start + 0.035);
+            gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.start(start); osc.stop(start + duration + 0.03);
+            activeToneNodes.push(osc);
+        }
+
+        function playIncomingRing() {
+            const ctx = ensureRingAudio();
+            const now = ctx.currentTime + 0.03;
+            // Двойной мягкий гудок: заметный, но не раздражающий.
+            tone(440, now, 0.62, 0.065);
+            tone(660, now, 0.62, 0.045);
+            tone(440, now + 0.82, 0.62, 0.065);
+            tone(660, now + 0.82, 0.62, 0.045);
+        }
 
         function startRingtone() {
-            ringtoneAudio.currentTime = 0;
-            ringtoneAudio.play().catch(() => {
-                startFallbackRingtone();
-            });
-        }
-
-        function stopRingtone() {
-            ringtoneAudio.pause();
-            ringtoneAudio.currentTime = 0;
-            stopFallbackRingtone();
-            stopOutgoingTone();
-        }
-
-        function startFallbackRingtone() {
+            stopRingtone();
             try {
-                if (!ringAudioCtx) ringAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-                stopFallbackRingtone();
-                outgoingToneInterval = setInterval(() => {
-                    if (!ringAudioCtx) return;
-                    const osc1 = ringAudioCtx.createOscillator();
-                    const osc2 = ringAudioCtx.createOscillator();
-                    const gain = ringAudioCtx.createGain();
-
-                    osc1.frequency.value = 852;
-                    osc2.frequency.value = 1209;
-
-                    gain.gain.setValueAtTime(0.1, ringAudioCtx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, ringAudioCtx.currentTime + 1.2);
-
-                    osc1.connect(gain);
-                    osc2.connect(gain);
-                    gain.connect(ringAudioCtx.destination);
-
-                    osc1.start();
-                    osc2.start();
-                    osc1.stop(ringAudioCtx.currentTime + 1.2);
-                    osc2.stop(ringAudioCtx.currentTime + 1.2);
-                }, 2000);
+                playIncomingRing();
+                outgoingToneInterval = setInterval(playIncomingRing, 3200);
             } catch(e) {}
         }
 
-        function stopFallbackRingtone() {
-            if (outgoingToneInterval) {
-                clearInterval(outgoingToneInterval);
-                outgoingToneInterval = null;
-            }
+        function stopRingtone() {
+            if (outgoingToneInterval) { clearInterval(outgoingToneInterval); outgoingToneInterval = null; }
+            stopToneNodes();
         }
 
         function startOutgoingTone() {
+            stopOutgoingTone();
             try {
-                if (!ringAudioCtx) ringAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-                stopOutgoingTone();
-                const playBeep = () => {
-                    if (!ringAudioCtx) return;
-                    const osc = ringAudioCtx.createOscillator();
-                    const gain = ringAudioCtx.createGain();
-
-                    osc.type = 'sine';
-                    osc.frequency.value = 425;
-
-                    gain.gain.setValueAtTime(0.1, ringAudioCtx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, ringAudioCtx.currentTime + 1.0);
-
-                    osc.connect(gain);
-                    gain.connect(ringAudioCtx.destination);
-
-                    osc.start();
-                    osc.stop(ringAudioCtx.currentTime + 1.0);
+                const playRingback = () => {
+                    const ctx = ensureRingAudio();
+                    const now = ctx.currentTime + 0.03;
+                    tone(425, now, 1.05, 0.045);
+                    tone(425, now + 1.08, 1.05, 0.045);
                 };
-
-                playBeep();
-                outgoingToneInterval = setInterval(playBeep, 4000);
+                playRingback();
+                outgoingToneInterval = setInterval(playRingback, 4200);
             } catch(e) {}
         }
 
         function stopOutgoingTone() {
-            if (outgoingToneInterval) {
-                clearInterval(outgoingToneInterval);
-                outgoingToneInterval = null;
-            }
+            if (outgoingToneInterval) { clearInterval(outgoingToneInterval); outgoingToneInterval = null; }
+            stopToneNodes();
         }
 
         const avatarColors = [
@@ -534,6 +745,11 @@
         let rooms = [];
         let onlineUsers = new Map();
         let unreadCounts = {};
+        let messageStatusTimers = new Map();
+
+        function makeMessageId() {
+            return myId + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             const savedSessionId = localStorage.getItem('chat_active_session_id');
@@ -675,10 +891,18 @@
         }
 
         function connectMQTT() {
-            client = mqtt.connect('wss://broker.hivemq.com:8884/mqtt');
+            client = mqtt.connect('wss://broker.hivemq.com:8884/mqtt', {
+                clientId: 'tg_' + myId.replace(/[^a-zA-Z0-9_-]/g, '_'),
+                clean: false,
+                reconnectPeriod: 1000,
+                connectTimeout: 10000,
+                keepalive: 30
+            });
 
             client.on('connect', () => {
-                client.subscribe('direct_msg_' + myId);
+                client.subscribe('direct_msg_' + myId, { qos: 1 });
+                client.subscribe('message_status_' + myId, { qos: 1 });
+                client.subscribe('typing_' + myId, { qos: 1 });
                 client.subscribe('check_id_' + myId);
                 client.subscribe('call_signal_' + myId);
 
@@ -698,6 +922,21 @@
                     return;
                 }
 
+                if (topic === 'message_status_' + myId) {
+                    handleMessageStatus(data);
+                    return;
+                }
+
+                if (topic === 'typing_' + myId) {
+                    handleTypingSignal(data);
+                    return;
+                }
+
+                if (topic === 'message_reaction_' + myId) {
+                    handleReactionSignal(data);
+                    return;
+                }
+
                 if (topic === 'call_signal_' + myId) {
                     handleCallSignal(data);
                     return;
@@ -705,6 +944,11 @@
 
                 if (topic.startsWith('custom_room_')) {
                     const roomId = topic.replace('custom_room_', '');
+                    if (data.type === 'reaction') {
+                        handleReactionSignal(data, roomId);
+                        return;
+                    }
+
                     if (data.type === 'ping') {
                         onlineUsers.set(data.id, { name: data.name, time: Date.now() });
                         renderUsers();
@@ -723,6 +967,7 @@
 
                 if (topic === 'direct_msg_' + myId) {
                     const senderId = data.senderId;
+                    const messageId = data.messageId || ('legacy_' + Date.now() + '_' + Math.random().toString(36).slice(2));
 
                     if (!friends.some(f => f.id === senderId)) {
                         friends.push({ id: senderId, name: data.senderName, avatar: data.avatar });
@@ -730,10 +975,16 @@
                         renderSidebarChats();
                     }
 
-                    saveMessageToStorage(senderId, data.senderName, data.content, false, data.msgType, data.avatar, data.fileName, data.fileSize);
+                    const isOpen = currentChat && currentChat.id === senderId && currentChat.type === 'direct';
+                    saveMessageToStorage(senderId, data.senderName, data.content, false, data.msgType, data.avatar, data.fileName, data.fileSize, messageId, senderId, isOpen ? 'read' : 'delivered');
 
-                    if (currentChat && currentChat.id === senderId && currentChat.type === 'direct') {
-                        renderMessageDOM(data.senderName, data.content, false, data.msgType, data.avatar, data.fileName, data.fileSize, true);
+                    // Сообщение физически дошло до клиента: 2 серые галочки.
+                    publishMessageStatus(senderId, messageId, 'delivered');
+
+                    if (isOpen) {
+                        renderMessageDOM(data.senderName, data.content, false, data.msgType, data.avatar, data.fileName, data.fileSize, true, messageId, 'read');
+                        // Чат открыт — сразу подтверждаем прочтение: 2 синие.
+                        publishMessageStatus(senderId, messageId, 'read');
                     } else {
                         incrementUnread(senderId);
                     }
@@ -819,7 +1070,7 @@
 
             if (friends.length > 0) {
                 const friendHeader = document.createElement('div');
-                friendHeader.className = 'text-[11px] font-bold text-slate-400 px-3 py-1 uppercase tracking-wider';
+                friendHeader.className = 'tg-section-label text-[11px] font-bold text-slate-400 px-3 py-1 uppercase tracking-wider';
                 friendHeader.textContent = 'Друзья (ЛС)';
                 container.appendChild(friendHeader);
 
@@ -828,18 +1079,19 @@
                     const isActive = currentChat && currentChat.id === f.id && currentChat.type === 'direct';
                     const unread = unreadCounts[f.id] || 0;
 
-                    el.className = `p-3 rounded-2xl flex items-center gap-3 cursor-pointer transition active:scale-[0.98] ${isActive ? 'bg-blue-600/20 border border-blue-500/40' : 'hover:bg-slate-800/50 border border-transparent'}`;
+                    el.className = `tg-chat-item p-3 rounded-2xl flex items-center gap-3 cursor-pointer transition active:scale-[0.98] ${isActive ? 'tg-active bg-blue-600/20 border border-blue-500/40' : 'hover:bg-slate-800/50 border border-transparent'}`;
+                    el.dataset.chatType = 'direct';
                     el.onclick = () => openChat(f.id, f.name, 'direct');
 
                     const color = getColorForName(f.name);
                     const unreadBadge = unread > 0 ? `<span class="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md animate-pulse">${unread}</span>` : '';
 
                     el.innerHTML = `
-                        <div class="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs ${color} shrink-0">${f.name.charAt(0).toUpperCase()}</div>
+                        <div class="tg-chat-avatar w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs ${color} shrink-0">${f.name.charAt(0).toUpperCase()}</div>
                         <div class="flex-1 min-w-0 flex justify-between items-center">
                             <div class="min-w-0 pr-1">
-                                <h3 class="text-sm font-semibold text-slate-100 dark:text-white truncate leading-tight">${escapeHTML(f.name)}</h3>
-                                <p class="text-[11px] text-slate-400 truncate">@${escapeHTML(f.id)}</p>
+                                <h3 class="tg-chat-name text-sm font-semibold text-slate-100 dark:text-white truncate leading-tight">${escapeHTML(f.name)}</h3>
+                                <p class="tg-chat-meta text-[11px] text-slate-400 truncate">@${escapeHTML(f.id)}</p>
                             </div>
                             ${unreadBadge}
                         </div>
@@ -850,7 +1102,7 @@
 
             if (rooms.length > 0) {
                 const roomHeader = document.createElement('div');
-                roomHeader.className = 'text-[11px] font-bold text-slate-400 px-3 py-1 uppercase tracking-wider mt-2';
+                roomHeader.className = 'tg-section-label text-[11px] font-bold text-slate-400 px-3 py-1 uppercase tracking-wider mt-2';
                 roomHeader.textContent = 'Комнаты';
                 container.appendChild(roomHeader);
 
@@ -859,17 +1111,18 @@
                     const isActive = currentChat && currentChat.id === r.id && currentChat.type === 'room';
                     const unread = unreadCounts[r.id] || 0;
 
-                    el.className = `p-3 rounded-2xl flex items-center gap-3 cursor-pointer transition active:scale-[0.98] ${isActive ? 'bg-purple-600/20 border border-purple-500/40' : 'hover:bg-slate-800/50 border border-transparent'}`;
+                    el.className = `tg-chat-item p-3 rounded-2xl flex items-center gap-3 cursor-pointer transition active:scale-[0.98] ${isActive ? 'tg-active bg-purple-600/20 border border-purple-500/40' : 'hover:bg-slate-800/50 border border-transparent'}`;
+                    el.dataset.chatType = 'room';
                     el.onclick = () => openChat(r.id, r.name, 'room');
 
                     const unreadBadge = unread > 0 ? `<span class="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md animate-pulse">${unread}</span>` : '';
 
                     el.innerHTML = `
-                        <div class="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-xs text-purple-400 shrink-0">#</div>
+                        <div class="tg-chat-avatar w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-xs text-purple-400 shrink-0">#</div>
                         <div class="flex-1 min-w-0 flex justify-between items-center">
                             <div class="min-w-0 pr-1">
-                                <h3 class="text-sm font-semibold text-slate-100 dark:text-white truncate leading-tight">${escapeHTML(r.name)}</h3>
-                                <p class="text-[11px] text-slate-400 truncate">Групповой чат</p>
+                                <h3 class="tg-chat-name text-sm font-semibold text-slate-100 dark:text-white truncate leading-tight">${escapeHTML(r.name)}</h3>
+                                <p class="tg-chat-meta text-[11px] text-slate-400 truncate">Групповой чат</p>
                             </div>
                             ${unreadBadge}
                         </div>
@@ -881,12 +1134,112 @@
             if (friends.length === 0 && rooms.length === 0) {
                 container.innerHTML = `
                     <div class="text-center text-slate-500 text-xs p-6 flex flex-col items-center gap-2">
-                        <span class="text-2xl">💬</span>
+                        <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 11.5a7.5 7.5 0 0 1-8 7.5 8.6 8.6 0 0 1-3.1-.58L4 20l1.57-3.1A7.1 7.1 0 0 1 4.5 12c0-4.14 3.36-7.5 7.5-7.5s8 2.86 8 7Z"/></svg>
                         <span>У тебя пока нет контактов. Добавь друга выше!</span>
                     </div>
                 `;
             }
+            if (typeof applyChatFilters === 'function') applyChatFilters();
         }
+
+        // Поиск и фильтры списка чатов в стиле Telegram Desktop
+        let activeChatFilter = 'all';
+        let activeChatSearch = '';
+
+        function applyChatFilters() {
+            const query = activeChatSearch.trim().toLowerCase();
+            document.querySelectorAll('#chats-list .tg-chat-item').forEach(item => {
+                const text = item.textContent.toLowerCase();
+                const type = item.dataset.chatType || 'direct';
+                const matchesSearch = !query || text.includes(query);
+                const matchesType = activeChatFilter === 'all' || type === activeChatFilter;
+                item.style.display = matchesSearch && matchesType ? '' : 'none';
+            });
+            document.querySelectorAll('#chats-list .tg-section-label').forEach(label => {
+                const section = label.textContent.includes('Комнаты') ? 'room' : 'direct';
+                const visible = [...label.parentElement.querySelectorAll('.tg-chat-item')].some(x => x.style.display !== 'none');
+                label.style.display = (activeChatFilter === 'all' || activeChatFilter === section) && visible ? '' : 'none';
+            });
+        }
+
+        document.getElementById('chat-search')?.addEventListener('input', e => {
+            activeChatSearch = e.target.value;
+            document.getElementById('clear-chat-search')?.classList.toggle('hidden', !activeChatSearch);
+            applyChatFilters();
+        });
+        document.getElementById('clear-chat-search')?.addEventListener('click', () => {
+            const input = document.getElementById('chat-search');
+            if (input) input.value = '';
+            activeChatSearch = '';
+            document.getElementById('clear-chat-search')?.classList.add('hidden');
+            applyChatFilters();
+            input?.focus();
+        });
+        document.querySelectorAll('#chat-filter-tabs button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                activeChatFilter = btn.dataset.filter || 'all';
+                document.querySelectorAll('#chat-filter-tabs button').forEach(b => b.classList.toggle('active', b === btn));
+                applyChatFilters();
+            });
+        });
+
+        let typingPublishTimer = null;
+        const remoteTyping = new Map();
+
+        function baseChatSubtitle(chat = currentChat) {
+            if (!chat) return '';
+            return chat.type === 'direct' ? `@${chat.id}` : `Комната: ${chat.id}`;
+        }
+
+        function updateChatHeaderSubtitle() {
+            if (!currentChat) return;
+            const el = document.getElementById('active-chat-subtitle');
+            if (!el) return;
+            const typingName = currentChat.type === 'direct' ? remoteTyping.get(currentChat.id) : null;
+            if (typingName) {
+                el.textContent = 'печатает…';
+                el.classList.add('typing-indicator');
+            } else {
+                el.textContent = baseChatSubtitle(currentChat);
+                el.classList.remove('typing-indicator');
+            }
+        }
+
+        function publishTyping(active) {
+            if (!currentChat || currentChat.type !== 'direct' || !client || !client.connected) return;
+            try {
+                client.publish('typing_' + currentChat.id, JSON.stringify({
+                    from: myId, name: myName, active: !!active
+                }), { qos: 0, retain: false });
+            } catch (e) {}
+        }
+
+        function handleTypingSignal(data) {
+            if (!data || data.from === myId || !data.from) return;
+            if (!currentChat || currentChat.type !== 'direct' || data.from !== currentChat.id) return;
+            if (data.active) {
+                remoteTyping.set(data.from, data.name || 'Собеседник');
+                updateChatHeaderSubtitle();
+                clearTimeout(typingTimers.get(data.from));
+                typingTimers.set(data.from, setTimeout(() => clearTyping(data.from), 2500));
+            } else {
+                clearTyping(data.from);
+            }
+        }
+
+        const typingTimers = new Map();
+        function clearTyping(userId) {
+            clearTimeout(typingTimers.get(userId));
+            typingTimers.delete(userId);
+            remoteTyping.delete(userId);
+            updateChatHeaderSubtitle();
+        }
+
+        document.getElementById('msg-input').addEventListener('input', () => {
+            publishTyping(true);
+            clearTimeout(typingPublishTimer);
+            typingPublishTimer = setTimeout(() => publishTyping(false), 1200);
+        });
 
         document.getElementById('back-to-sidebar-btn').onclick = () => {
             document.getElementById('sidebar').classList.remove('hidden');
@@ -902,12 +1255,13 @@
             currentChat = { id, name, type };
             clearUnread(id);
 
-            document.getElementById('sidebar').classList.add('hidden');
+            if (window.innerWidth < 768) document.getElementById('sidebar').classList.add('hidden');
             document.getElementById('chat-area').classList.remove('hidden');
             document.getElementById('chat-area').classList.add('flex');
 
             document.getElementById('active-chat-title').textContent = name;
-            document.getElementById('active-chat-subtitle').textContent = type === 'direct' ? `@${id}` : `Комната: ${id}`;
+            document.getElementById('active-chat-subtitle').textContent = baseChatSubtitle(currentChat);
+            updateChatHeaderSubtitle();
             
             const avatar = document.getElementById('active-avatar');
             avatar.textContent = type === 'direct' ? name.charAt(0).toUpperCase() : '#';
@@ -928,7 +1282,7 @@
             loadChatHistory();
         }
 
-        function getStorageKey(chatId, type) {
+        function getStorageKey(chatId, type = 'direct') {
             return `chat_history_${type}_${chatId}_${myId}`;
         }
 
@@ -944,30 +1298,101 @@
                 const data = JSON.parse(rawData);
 
                 data.messages.forEach(m => {
-                    renderMessageDOM(m.author, m.content, m.isMe, m.type, m.avatar, m.fileName, m.fileSize, false);
+                    const status = m.isMe ? (m.status || 'sent') : m.status;
+                    renderMessageDOM(m.author, m.content, m.isMe, m.type, m.avatar, m.fileName, m.fileSize, false, m.messageId, status, m.reactions || {});
                 });
                 box.scrollTop = box.scrollHeight;
+
+                // Все входящие, находящиеся в открытом чате, считаем прочитанными.
+                if (currentChat.type === 'direct') {
+                    data.messages.filter(m => !m.isMe && m.messageId && m.status !== 'read').forEach(m => {
+                        m.status = 'read';
+                        publishMessageStatus(currentChat.id, m.messageId, 'read');
+                    });
+                    localStorage.setItem(key, JSON.stringify(data));
+                    clearUnread(currentChat.id);
+                }
             } catch (e) {}
         }
 
-        function saveMessageToStorage(chatId, author, content, isMe, type, avatar, fileName, fileSize) {
+        function saveMessageToStorage(chatId, author, content, isMe, type, avatar, fileName, fileSize, messageId = null, senderId = null, status = null) {
             try {
-                const key = getStorageKey(chatId, currentChat ? currentChat.type : 'direct');
+                const key = getStorageKey(chatId, (isMe ? (currentChat?.id === chatId ? currentChat.type : 'direct') : 'direct'));
                 const rawData = localStorage.getItem(key);
                 const chatData = rawData ? JSON.parse(rawData) : { timestamp: Date.now(), messages: [] };
 
-                chatData.messages.push({ author, content, isMe, type, avatar, fileName, fileSize });
-                if (chatData.messages.length > 200) chatData.messages.shift();
+                const msg = {
+                    author, content, isMe, type, avatar, fileName, fileSize,
+                    messageId: messageId || makeMessageId(),
+                    senderId: senderId || (isMe ? myId : chatId),
+                    status: status || (isMe ? 'sent' : 'delivered'),
+                    reactions: {},
+                    createdAt: Date.now()
+                };
+                chatData.messages.push(msg);
+                if (chatData.messages.length > 500) chatData.messages.shift();
 
                 localStorage.setItem(key, JSON.stringify(chatData));
+                return msg;
+            } catch (e) { return null; }
+        }
+
+        function saveAndAddMessage(chatId, author, content, isMe, type, avatar, fileName, fileSize, messageId = null, status = null) {
+            const saved = saveMessageToStorage(chatId, author, content, isMe, type, avatar, fileName, fileSize, messageId, isMe ? myId : chatId, status);
+            if (currentChat && currentChat.id === chatId) {
+                renderMessageDOM(author, content, isMe, type, avatar, fileName, fileSize, true, saved?.messageId, saved?.status);
+            }
+            return saved;
+        }
+
+        function updateStoredMessageStatus(chatId, messageId, status) {
+            if (!messageId) return;
+            try {
+                const key = getStorageKey(chatId, 'direct');
+                const raw = localStorage.getItem(key);
+                if (!raw) return;
+                const data = JSON.parse(raw);
+                const msg = data.messages.find(m => m.messageId === messageId);
+                if (msg) {
+                    const rank = { sent: 0, delivered: 1, read: 2 };
+                    if ((rank[status] ?? 0) >= (rank[msg.status] ?? 0)) {
+                        msg.status = status;
+                        localStorage.setItem(key, JSON.stringify(data));
+                    }
+                }
             } catch (e) {}
         }
 
-        function saveAndAddMessage(chatId, author, content, isMe, type, avatar, fileName, fileSize) {
-            saveMessageToStorage(chatId, author, content, isMe, type, avatar, fileName, fileSize);
-            if (currentChat && currentChat.id === chatId) {
-                renderMessageDOM(author, content, isMe, type, avatar, fileName, fileSize, true);
+        function publishMessageStatus(recipientId, messageId, status) {
+            if (!client || !recipientId || !messageId) return;
+            client.publish('message_status_' + recipientId, JSON.stringify({
+                messageId, status, chatId: myId, from: myId
+            }), { qos: 1 });
+        }
+
+        function handleMessageStatus(data) {
+            if (!data || !data.messageId || !data.status) return;
+            // Статусы применяем только вперёд: отправлено -> доставлено -> прочитано.
+            const chatId = data.chatId || data.from;
+            updateStoredMessageStatus(chatId, data.messageId, data.status);
+            const el = document.querySelector(`[data-message-id="${CSS.escape(data.messageId)}"]`);
+            if (el) {
+                const statusEl = el.querySelector('.message-status');
+                if (statusEl) {
+                    statusEl.dataset.status = data.status;
+                    statusEl.innerHTML = messageStatusHTML(data.status);
+                }
             }
+        }
+
+        function messageStatusHTML(status = 'sent') {
+            if (status === 'read') {
+                return '<span class="message-status-icon text-sky-200" title="Прочитано">✓✓</span>';
+            }
+            if (status === 'delivered') {
+                return '<span class="message-status-icon text-slate-300" title="Доставлено">✓✓</span>';
+            }
+            return '<span class="message-status-icon text-white/75" title="Отправлено">✓</span>';
         }
 
         document.getElementById('msg-form').onsubmit = (e) => {
@@ -978,18 +1403,22 @@
             const text = input.value.trim();
             if (!text) return;
 
+            const messageId = makeMessageId();
             const msgData = {
-                senderId: myId, senderName: myName, content: text, msgType: 'text', avatar: myCustomAvatar
+                senderId: myId, senderName: myName, content: text, msgType: 'text', avatar: myCustomAvatar,
+                messageId
             };
 
             if (currentChat.type === 'direct') {
-                client.publish('direct_msg_' + currentChat.id, JSON.stringify(msgData));
+                client.publish('direct_msg_' + currentChat.id, JSON.stringify(msgData), { qos: 1 });
             } else {
                 client.publish('custom_room_' + currentChat.id, JSON.stringify(msgData));
             }
 
-            saveAndAddMessage(currentChat.id, myName, text, true, 'text', myCustomAvatar);
+            saveAndAddMessage(currentChat.id, myName, text, true, 'text', myCustomAvatar, null, null, messageId, 'sent');
             input.value = '';
+            clearTimeout(typingPublishTimer);
+            publishTyping(false);
         };
 
         const attachBtn = document.getElementById('attach-btn');
@@ -1059,6 +1488,7 @@
         };
 
         function sendPayload(content, msgType, fileName, fileSize) {
+            const messageId = makeMessageId();
             const msgData = {
                 senderId: myId, 
                 senderName: myName, 
@@ -1066,22 +1496,118 @@
                 msgType: msgType, 
                 avatar: myCustomAvatar,
                 fileName: fileName,
-                fileSize: fileSize
+                fileSize: fileSize,
+                messageId
             };
 
             if (currentChat.type === 'direct') {
-                client.publish('direct_msg_' + currentChat.id, JSON.stringify(msgData));
+                client.publish('direct_msg_' + currentChat.id, JSON.stringify(msgData), { qos: 1 });
             } else {
                 client.publish('custom_room_' + currentChat.id, JSON.stringify(msgData));
             }
 
-            saveAndAddMessage(currentChat.id, myName, content, true, msgType, myCustomAvatar, fileName, fileSize);
+            saveAndAddMessage(currentChat.id, myName, content, true, msgType, myCustomAvatar, fileName, fileSize, messageId, 'sent');
         }
 
-        function renderMessageDOM(author, content, isMe, type, customAvatar, fileName, fileSize, scrollDown = true) {
+        function normalizeReactions(reactions) {
+            const out = {};
+            if (!reactions || typeof reactions !== 'object') return out;
+            Object.entries(reactions).forEach(([emoji, users]) => {
+                if (!Array.isArray(users)) return;
+                const unique = [...new Set(users.filter(Boolean))];
+                if (unique.length) out[emoji] = unique;
+            });
+            return out;
+        }
+
+        function reactionSummaryHTML(reactions = {}) {
+            const normalized = normalizeReactions(reactions);
+            return Object.entries(normalized).map(([emoji, users]) => {
+                const mine = users.includes(myId) ? ' mine' : '';
+                return `<button type="button" class="message-reaction-chip${mine}" data-reaction-chip="${emoji}" title="${users.length} реакций"><span>${emoji}</span><span>${users.length}</span></button>`;
+            }).join('');
+        }
+
+        function findStoredMessage(chatId, type, messageId) {
+            if (!chatId || !messageId) return null;
+            try {
+                const key = getStorageKey(chatId, type);
+                const raw = localStorage.getItem(key);
+                if (!raw) return null;
+                const data = JSON.parse(raw);
+                const message = data.messages.find(m => m.messageId === messageId);
+                return message ? { key, data, message } : null;
+            } catch (e) { return null; }
+        }
+
+        function updateReactionDOM(messageId, reactions) {
+            const el = document.querySelector(`[data-message-id="${CSS.escape(messageId)}"]`);
+            if (!el) return;
+            const list = el.querySelector('.message-reaction-list');
+            if (list) list.innerHTML = reactionSummaryHTML(reactions);
+            bindReactionButtons(el);
+        }
+
+        function bindReactionButtons(root) {
+            root.querySelectorAll('.message-action-btn').forEach(btn => {
+                if (btn.dataset.bound === '1') return;
+                btn.dataset.bound = '1';
+                btn.addEventListener('click', () => toggleReaction(btn.dataset.messageId, btn.dataset.emoji));
+            });
+            root.querySelectorAll('.message-reaction-chip').forEach(btn => {
+                if (btn.dataset.bound === '1') return;
+                btn.dataset.bound = '1';
+                btn.addEventListener('click', () => toggleReaction(btn.closest('[data-message-id]')?.dataset.messageId, btn.dataset.reactionChip));
+            });
+        }
+
+        function applyReactionLocally(chatId, chatType, messageId, emoji, userId, active) {
+            const found = findStoredMessage(chatId, chatType, messageId);
+            if (!found) return null;
+            const reactions = normalizeReactions(found.message.reactions || {});
+            const users = new Set(reactions[emoji] || []);
+            if (active) users.add(userId); else users.delete(userId);
+            if (users.size) reactions[emoji] = [...users]; else delete reactions[emoji];
+            found.message.reactions = reactions;
+            localStorage.setItem(found.key, JSON.stringify(found.data));
+            updateReactionDOM(messageId, reactions);
+            return reactions;
+        }
+
+        function toggleReaction(messageId, emoji) {
+            if (!currentChat || !messageId || !emoji) return;
+            const found = findStoredMessage(currentChat.id, currentChat.type, messageId);
+            if (!found) return;
+            const reactions = normalizeReactions(found.message.reactions || {});
+            const users = reactions[emoji] || [];
+            const active = !users.includes(myId);
+            const updated = applyReactionLocally(currentChat.id, currentChat.type, messageId, emoji, myId, active);
+            const payload = JSON.stringify({ type:'reaction', messageId, emoji, userId:myId, active, chatId:currentChat.id, from:myId });
+            try {
+                if (currentChat.type === 'direct') client.publish('message_reaction_' + currentChat.id, payload, { qos: 1 });
+                else client.publish('custom_room_' + currentChat.id, payload, { qos: 1 });
+            } catch (e) {}
+            return updated;
+        }
+
+        function handleReactionSignal(data, roomId = null) {
+            if (!data || data.type !== 'reaction' || data.userId === myId || !data.messageId || !data.emoji) return;
+
+            // Для ЛС ключ истории хранится по ID СОБЕСЕДНИКА.
+            // Реакция приходит на topic получателя, поэтому data.chatId указывает
+            // на получателя реакции, а нам нужен data.from — автор реакции.
+            const isRoom = !!roomId;
+            const chatId = isRoom ? roomId : data.from;
+            if (!chatId) return;
+
+            applyReactionLocally(chatId, isRoom ? 'room' : 'direct', data.messageId, data.emoji, data.userId, !!data.active);
+        }
+
+        function renderMessageDOM(author, content, isMe, type, customAvatar, fileName, fileSize, scrollDown = true, messageId = null, status = null, reactions = {}) {
             const box = document.getElementById('messages');
             const div = document.createElement('div');
-            div.className = `flex gap-2.5 items-end animate-slide-up ${isMe ? 'flex-row-reverse' : 'flex-row'}`;
+            div.className = `flex gap-2.5 items-end animate-slide-up group ${isMe ? 'flex-row-reverse' : 'flex-row'}`;
+            if (messageId) div.dataset.messageId = messageId;
 
             const firstLetter = author.charAt(0).toUpperCase();
             const avatarColor = getColorForName(author);
@@ -1133,12 +1659,20 @@
 
             div.innerHTML = `
                 ${avatarHTML}
-                <div class="max-w-[75%] space-y-0.5">
+                <div class="message-shell max-w-[75%] space-y-0.5">
                     ${!isMe ? `<p class="text-[10px] text-slate-400 ml-1 font-medium">${escapeHTML(author)}</p>` : ''}
-                    ${innerHTMLContent}
+                    <div class="relative">
+                        ${innerHTMLContent}
+                        ${isMe && messageId ? `<div class="message-status absolute right-2 bottom-1.5 leading-none" data-status="${status || 'sent'}">${messageStatusHTML(status || 'sent')}</div>` : ''}
+                    </div>
+                    <div class="message-reaction-list">${reactionSummaryHTML(reactions)}</div>
+                    <div class="message-actions ${isMe ? 'justify-end' : 'justify-start'}" aria-label="Реакции">
+                        ${['👍','❤️','😂','🔥'].map(emoji => `<button type="button" class="message-action-btn" data-message-id="${escapeHTML(messageId || '')}" data-emoji="${emoji}" title="${emoji}">${emoji}</button>`).join('')}
+                    </div>
                 </div>
             `;
             box.appendChild(div);
+            bindReactionButtons(div);
             if (scrollDown) box.scrollTop = box.scrollHeight;
         }
 
@@ -1153,109 +1687,203 @@
             document.getElementById('image-modal').classList.remove('flex');
         }
 
-        // --- ИСПРАВЛЕННЫЕ WebRTC ЗВОНКИ С TURN-СЕРВЕРОМ ---
-        let peerConnection;
-        let localStream;
+        // --- Надёжные WebRTC-звонки: STUN + TURN + ICE restart ---
+        let peerConnection = null;
+        let localStream = null;
         let callTargetId = null;
-        let isVideoCall = true;
         let iceCandidatesQueue = [];
+        let pendingCallOffer = null;
+        let callClosing = false;
+        let iceRestartInProgress = false;
+        let callStartedAt = null;
+        let callTimerInterval = null;
 
-        // STUN и TURN серверы (помогают пробивать роутеры и мобильные сети)
+        // TURN нужен для сетей, где прямое P2P-соединение невозможно
+        // (мобильный интернет, CGNAT, строгий NAT/Firewall).
         const rtcConfig = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
                 {
-                    urls: 'turn:openrelay.metered.ca:80',
-                    username: 'openrelayproject',
-                    credential: 'openrelayproject'
-                },
-                {
-                    urls: 'turn:openrelay.metered.ca:443',
+                    urls: [
+                        'turn:openrelay.metered.ca:80',
+                        'turn:openrelay.metered.ca:443?transport=tcp',
+                        'turns:openrelay.metered.ca:443?transport=tcp'
+                    ],
                     username: 'openrelayproject',
                     credential: 'openrelayproject'
                 }
-            ]
+            ],
+            bundlePolicy: 'max-bundle',
+            rtcpMuxPolicy: 'require',
+            iceCandidatePoolSize: 10
         };
 
+        function setCallStatus(text) {
+            const el = document.getElementById('call-status-timer');
+            if (el) el.textContent = text;
+        }
+
+        function startCallTimer() {
+            callStartedAt = Date.now();
+            clearInterval(callTimerInterval);
+            callTimerInterval = setInterval(() => {
+                if (!callStartedAt) return;
+                const seconds = Math.floor((Date.now() - callStartedAt) / 1000);
+                const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
+                const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+                const sec = String(seconds % 60).padStart(2, '0');
+                setCallStatus(h === '00' ? `${m}:${sec}` : `${h}:${m}:${sec}`);
+            }, 1000);
+        }
+
+        function stopCallTimer() {
+            clearInterval(callTimerInterval);
+            callTimerInterval = null;
+            callStartedAt = null;
+        }
+
+        function showActiveCall() {
+            const modal = document.getElementById('active-call-modal');
+            modal.classList.remove('hidden');
+            modal.classList.remove('call-modal-enter');
+            void modal.offsetWidth;
+            modal.classList.add('call-modal-enter');
+        }
+
+        function showIncomingCall() {
+            const modal = document.getElementById('incoming-call-modal');
+            modal.classList.remove('hidden');
+            modal.classList.remove('call-modal-enter');
+            void modal.offsetWidth;
+            modal.classList.add('call-modal-enter');
+        }
+
         function initWebRTC() {
-            document.getElementById('start-voice-call-btn').onclick = () => startCall(false);
-            document.getElementById('start-video-call-btn').onclick = () => startCall(true);
-            document.getElementById('end-call-btn').onclick = endCall;
+            document.getElementById('start-voice-call-btn').onclick = () => startCall();
+            document.getElementById('end-call-btn').onclick = () => endCall(true);
             document.getElementById('reject-call-btn').onclick = rejectCall;
             document.getElementById('accept-call-btn').onclick = acceptCall;
 
             document.getElementById('toggle-mic-btn').onclick = () => {
-                if (localStream) {
-                    const audioTrack = localStream.getAudioTracks()[0];
-                    if (audioTrack) {
-                        audioTrack.enabled = !audioTrack.enabled;
-                        document.getElementById('toggle-mic-btn').classList.toggle('bg-red-600', !audioTrack.enabled);
-                    }
-                }
-            };
-
-            document.getElementById('toggle-cam-btn').onclick = () => {
-                if (localStream) {
-                    const videoTrack = localStream.getVideoTracks()[0];
-                    if (videoTrack) {
-                        videoTrack.enabled = !videoTrack.enabled;
-                        document.getElementById('toggle-cam-btn').classList.toggle('bg-red-600', !videoTrack.enabled);
-                    }
-                }
+                if (!localStream) return;
+                const audioTrack = localStream.getAudioTracks()[0];
+                if (!audioTrack) return;
+                audioTrack.enabled = !audioTrack.enabled;
+                document.getElementById('toggle-mic-btn').classList.toggle('is-off', !audioTrack.enabled);
+                if (!audioTrack.enabled) { const r = document.getElementById('call-mic-level-rect'); if (r) { r.setAttribute('y', '24'); r.setAttribute('height', '0'); } }
             };
         }
 
-        async function startCall(video) {
-            if (!currentChat || currentChat.type !== 'direct') return alert('Звонить можно только другу в ЛС!');
+        function publishCallSignal(data) {
+            if (!client || !client.connected || !callTargetId) return false;
+            try {
+                client.publish('call_signal_' + callTargetId, JSON.stringify(data), { qos: 1 });
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+        async function startCall() {
+            if (!currentChat || currentChat.type !== 'direct') {
+                return alert('Звонить можно только другу в ЛС!');
+            }
+            if (peerConnection || localStream || callTargetId) return;
+            if (!client || !client.connected) return alert('Нет соединения с сервером. Подожди пару секунд и попробуй снова.');
 
+            callClosing = false;
             callTargetId = currentChat.id;
-            isVideoCall = video;
             iceCandidatesQueue = [];
 
-            document.getElementById('active-call-modal').classList.remove('hidden');
+            showActiveCall();
             document.getElementById('active-call-name').textContent = currentChat.name;
-            document.getElementById('call-status-timer').textContent = 'Вызов...';
-
+            setCallStatus('Подключение...');
             startOutgoingTone();
 
             try {
-                // Всегда запрашиваем и аудио и видео
-                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: isVideoCall });
-                document.getElementById('local-video').srcObject = localStream;
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                        channelCount: 1,
+                        sampleRate: 48000
+                    }
+                });
+                startMicLevelMeter(localStream, 'call');
 
                 createPeerConnection();
-
-                localStream.getTracks().forEach(track => {
-                    peerConnection.addTrack(track, localStream);
-                });
+                localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
                 const offer = await peerConnection.createOffer();
                 await peerConnection.setLocalDescription(offer);
 
-                client.publish('call_signal_' + callTargetId, JSON.stringify({
+                publishCallSignal({
                     type: 'offer',
-                    offer: offer,
+                    offer: peerConnection.localDescription,
                     from: myId,
                     fromName: myName,
-                    hasVideo: isVideoCall
-                }));
+                    callMode: 'audio'
+                });
+                setCallStatus('Вызов...');
             } catch (err) {
-                alert('Не удалось получить доступ к микрофону или камере! Убедись, что сайт открыт по HTTPS или локально.');
-                endCall();
+                console.error('startCall:', err);
+                alert('Не удалось получить доступ к микрофону. Проверь разрешения браузера и HTTPS.');
+                endCall(false);
             }
         }
 
         function createPeerConnection() {
+            if (peerConnection) {
+                try { peerConnection.close(); } catch (e) {}
+            }
+
             peerConnection = new RTCPeerConnection(rtcConfig);
 
             peerConnection.onicecandidate = (event) => {
-                if (event.candidate && callTargetId) {
-                    client.publish('call_signal_' + callTargetId, JSON.stringify({
+                if (event.candidate && callTargetId && !callClosing) {
+                    publishCallSignal({
                         type: 'candidate',
                         candidate: event.candidate,
                         from: myId
-                    }));
+                    });
+                }
+            };
+
+            peerConnection.onicecandidateerror = (event) => {
+                console.warn('ICE candidate error:', event.errorCode, event.errorText);
+            };
+
+            peerConnection.oniceconnectionstatechange = () => {
+                if (!peerConnection || callClosing) return;
+                const state = peerConnection.iceConnectionState;
+                if (state === 'checking') setCallStatus('Соединение...');
+                if (state === 'connected' || state === 'completed') {
+                    stopOutgoingTone();
+                    startCallTimer();
+                }
+                if (state === 'disconnected') {
+                    setCallStatus('Переподключение...');
+                    scheduleIceRestart();
+                }
+                if (state === 'failed') {
+                    setCallStatus('Восстановление соединения...');
+                    scheduleIceRestart(true);
+                }
+            };
+
+            peerConnection.onconnectionstatechange = () => {
+                if (!peerConnection || callClosing) return;
+                const state = peerConnection.connectionState;
+                if (state === 'connected') {
+                    stopOutgoingTone();
+                    stopRingtone();
+                    startCallTimer();
+                    setCallStatus('00:00');
+                } else if (state === 'failed') {
+                    scheduleIceRestart(true);
+                } else if (state === 'disconnected') {
+                    setCallStatus('Переподключение...');
                 }
             };
 
@@ -1263,62 +1891,116 @@
                 stopRingtone();
                 stopOutgoingTone();
 
-                const remoteVideo = document.getElementById('remote-video');
+                const stream = event.streams && event.streams[0];
+                if (!stream) return;
                 const remoteAudio = document.getElementById('remote-audio-player');
+                remoteAudio.srcObject = stream;
+                remoteAudio.play().catch(() => {});
 
-                if (event.streams && event.streams[0]) {
-                    // Привязываем поток к элементам
-                    remoteVideo.srcObject = event.streams[0];
-                    remoteAudio.srcObject = event.streams[0];
-
-                    // Явно запускаем воспроизведение звука
-                    remoteAudio.play().catch(() => {});
-                    remoteVideo.play().catch(() => {});
-
-                    if (isVideoCall) {
-                        document.getElementById('no-remote-video').classList.add('hidden');
-                    }
-                    document.getElementById('call-status-timer').textContent = 'Разговор...';
-                }
+                if (!callStartedAt) startCallTimer();
+                setCallStatus('00:00');
             };
+
+            peerConnection.onnegotiationneeded = () => {};
         }
 
-        let pendingCallOffer = null;
+        let iceRestartTimer = null;
+        function scheduleIceRestart(force = false) {
+            if (callClosing || iceRestartInProgress || !peerConnection || !callTargetId) return;
+            clearTimeout(iceRestartTimer);
+            iceRestartTimer = setTimeout(() => restartIceConnection(force), force ? 300 : 1500);
+        }
+
+        async function restartIceConnection(force = false) {
+            if (callClosing || iceRestartInProgress || !peerConnection || !callTargetId) return;
+            if (!force && !['disconnected', 'failed'].includes(peerConnection.iceConnectionState)) return;
+
+            iceRestartInProgress = true;
+            try {
+                const offer = await peerConnection.createOffer({ iceRestart: true });
+                await peerConnection.setLocalDescription(offer);
+                publishCallSignal({
+                    type: 'ice-restart-offer',
+                    offer: peerConnection.localDescription,
+                    from: myId,
+                    fromName: myName
+                });
+            } catch (e) {
+                console.warn('ICE restart failed:', e);
+            } finally {
+                iceRestartInProgress = false;
+            }
+        }
 
         function handleCallSignal(data) {
-            if (data.type === 'offer') {
+            if (!data || !data.type || data.from === myId) return;
+
+            if (data.type === 'offer' || data.type === 'ice-restart-offer') {
+                if (data.type === 'ice-restart-offer' && peerConnection && localStream) {
+                    handleIceRestartOffer(data);
+                    return;
+                }
+
+                if (peerConnection || localStream) return;
                 pendingCallOffer = data;
                 callTargetId = data.from;
 
-                document.getElementById('caller-name').textContent = data.fromName;
-                document.getElementById('call-type-label').textContent = data.hasVideo ? 'Входящий видеозвонок...' : 'Входящий аудиозвонок...';
-                document.getElementById('incoming-call-modal').classList.remove('hidden');
-
+                document.getElementById('caller-name').textContent = data.fromName || data.from;
+                document.getElementById('call-type-label').textContent = 'Входящий аудиозвонок…';
+                showIncomingCall();
                 startRingtone();
-            } else if (data.type === 'answer') {
-                stopOutgoingTone();
-                stopRingtone();
+                return;
+            }
 
-                if (peerConnection) {
-                    peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer)).then(() => {
-                        processIceCandidates();
+            if (data.type === 'answer') {
+                stopOutgoingTone();
+                if (!peerConnection) return;
+                peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer))
+                    .then(processIceCandidates)
+                    .catch(e => console.warn('setRemoteDescription(answer):', e));
+                return;
+            }
+
+            if (data.type === 'candidate') {
+                if (!peerConnection || !peerConnection.remoteDescription) {
+                    iceCandidatesQueue.push(data.candidate);
+                } else {
+                    peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(e => {
+                        console.warn('addIceCandidate:', e);
                     });
                 }
-            } else if (data.type === 'candidate') {
-                if (peerConnection && peerConnection.remoteDescription) {
-                    peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(() => {});
-                } else {
-                    iceCandidatesQueue.push(data.candidate);
-                }
-            } else if (data.type === 'reject' || data.type === 'end') {
-                endCall();
+                return;
+            }
+
+            if (data.type === 'reject') {
+                endCall(false);
+                return;
+            }
+
+            if (data.type === 'end') {
+                endCall(false);
+                return;
+            }
+        }
+
+        async function handleIceRestartOffer(data) {
+            if (!peerConnection) return;
+            try {
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+                processIceCandidates();
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                publishCallSignal({ type: 'answer', answer: peerConnection.localDescription, from: myId });
+            } catch (e) {
+                console.warn('ICE restart answer:', e);
             }
         }
 
         function processIceCandidates() {
-            while (iceCandidatesQueue.length > 0) {
-                const cand = iceCandidatesQueue.shift();
-                peerConnection.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
+            if (!peerConnection || !peerConnection.remoteDescription) return;
+            while (iceCandidatesQueue.length) {
+                const candidate = iceCandidatesQueue.shift();
+                peerConnection.addIceCandidate(new RTCIceCandidate(candidate)).catch(() => {});
             }
         }
 
@@ -1326,25 +2008,21 @@
             stopRingtone();
             stopOutgoingTone();
             document.getElementById('incoming-call-modal').classList.add('hidden');
-            if (!pendingCallOffer) return;
+            if (!pendingCallOffer || !callTargetId) return;
 
-            isVideoCall = pendingCallOffer.hasVideo;
-            document.getElementById('active-call-modal').classList.remove('hidden');
-            document.getElementById('active-call-name').textContent = pendingCallOffer.fromName;
+            callClosing = false;
+            showActiveCall();
+            document.getElementById('active-call-name').textContent = pendingCallOffer.fromName || pendingCallOffer.from;
+            setCallStatus('Подключение...');
 
             try {
-                // Вызываем проигрывание аудиоплеера напрямую во время клика для обхода автоплей-блокировок
-                const remoteAudio = document.getElementById('remote-audio-player');
-                remoteAudio.play().catch(() => {});
-
-                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: isVideoCall });
-                document.getElementById('local-video').srcObject = localStream;
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, sampleRate: 48000 }
+                });
+                startMicLevelMeter(localStream, 'call');
 
                 createPeerConnection();
-
-                localStream.getTracks().forEach(track => {
-                    peerConnection.addTrack(track, localStream);
-                });
+                localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(pendingCallOffer.offer));
                 processIceCandidates();
@@ -1352,13 +2030,16 @@
                 const answer = await peerConnection.createAnswer();
                 await peerConnection.setLocalDescription(answer);
 
-                client.publish('call_signal_' + callTargetId, JSON.stringify({
+                publishCallSignal({
                     type: 'answer',
-                    answer: answer,
+                    answer: peerConnection.localDescription,
                     from: myId
-                }));
+                });
+                setCallStatus('Соединение...');
+                pendingCallOffer = null;
             } catch (err) {
-                alert('Не удалось подключить микрофон или камеру!');
+                console.error('acceptCall:', err);
+                alert('Не удалось подключить микрофон. Проверь разрешение браузера.');
                 rejectCall();
             }
         }
@@ -1367,42 +2048,56 @@
             stopRingtone();
             stopOutgoingTone();
             document.getElementById('incoming-call-modal').classList.add('hidden');
-            if (callTargetId) {
-                client.publish('call_signal_' + callTargetId, JSON.stringify({ type: 'reject', from: myId }));
-            }
+            publishCallSignal({ type: 'reject', from: myId });
             pendingCallOffer = null;
             callTargetId = null;
+            iceCandidatesQueue = [];
         }
 
-        function endCall() {
-            stopRingtone();
-            stopOutgoingTone();
-            document.getElementById('active-call-modal').classList.add('hidden');
-            document.getElementById('incoming-call-modal').classList.add('hidden');
-            document.getElementById('no-remote-video').classList.remove('hidden');
+        function endCall(notifyPeer = true) {
+            if (callClosing) return;
+            callClosing = true;
 
-            if (callTargetId && client) {
-                client.publish('call_signal_' + callTargetId, JSON.stringify({ type: 'end', from: myId }));
+            const target = callTargetId;
+            if (notifyPeer && target && client && client.connected) {
+                try {
+                    client.publish('call_signal_' + target, JSON.stringify({ type: 'end', from: myId }), { qos: 1 });
+                } catch (e) {}
             }
 
+            stopRingtone();
+            stopOutgoingTone();
+            stopCallTimer();
+            clearTimeout(iceRestartTimer);
+            iceRestartTimer = null;
+            iceRestartInProgress = false;
+
+            document.getElementById('active-call-modal').classList.add('hidden');
+            document.getElementById('incoming-call-modal').classList.add('hidden');
+
             if (peerConnection) {
-                peerConnection.close();
+                try { peerConnection.ontrack = null; peerConnection.onicecandidate = null; peerConnection.close(); } catch (e) {}
                 peerConnection = null;
             }
 
             if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
+                stopMicLevelMeter();
+                localStream.getTracks().forEach(track => {
+                    try { track.stop(); } catch (e) {}
+                });
                 localStream = null;
             }
 
             const remoteAudio = document.getElementById('remote-audio-player');
-            const remoteVideo = document.getElementById('remote-video');
+            remoteAudio.pause();
             remoteAudio.srcObject = null;
-            remoteVideo.srcObject = null;
 
-            callTargetId = null;
             pendingCallOffer = null;
+            callTargetId = null;
             iceCandidatesQueue = [];
+            setCallStatus('Соединение...');
+
+            setTimeout(() => { callClosing = false; }, 100);
         }
 
         // Настройки
@@ -1461,6 +2156,43 @@
 
         // Запись голосовых
         let mediaRecorder, audioChunks = [], isRecording = false, recTimerInterval, seconds = 0;
+        let micMeterContext = null, micMeterSource = null, micMeterAnalyser = null, micMeterRAF = null;
+
+        function stopMicLevelMeter() {
+            if (micMeterRAF) cancelAnimationFrame(micMeterRAF);
+            micMeterRAF = null;
+            if (micMeterSource) { try { micMeterSource.disconnect(); } catch(e) {} }
+            micMeterSource = null;
+            micMeterAnalyser = null;
+            const rects = [document.getElementById('mic-level-rect'), document.getElementById('call-mic-level-rect')];
+            rects.forEach(r => { if (r) { r.setAttribute('y','24'); r.setAttribute('height','0'); } });
+        }
+
+        function startMicLevelMeter(stream, target = 'record') {
+            stopMicLevelMeter();
+            try {
+                micMeterContext = micMeterContext || new (window.AudioContext || window.webkitAudioContext)();
+                if (micMeterContext.state === 'suspended') micMeterContext.resume().catch(() => {});
+                micMeterSource = micMeterContext.createMediaStreamSource(stream);
+                micMeterAnalyser = micMeterContext.createAnalyser();
+                micMeterAnalyser.fftSize = 256;
+                micMeterAnalyser.smoothingTimeConstant = 0.72;
+                micMeterSource.connect(micMeterAnalyser);
+                const data = new Uint8Array(micMeterAnalyser.fftSize);
+                const tick = () => {
+                    if (!micMeterAnalyser) return;
+                    micMeterAnalyser.getByteTimeDomainData(data);
+                    let sum = 0;
+                    for (let i = 0; i < data.length; i++) { const v = (data[i] - 128) / 128; sum += v * v; }
+                    const rms = Math.sqrt(sum / data.length);
+                    const level = Math.min(1, Math.max(0, (rms - 0.008) * 5.2));
+                    const rect = document.getElementById(target === 'call' ? 'call-mic-level-rect' : 'mic-level-rect');
+                    if (rect) { const h = Math.max(0, 24 * level); rect.setAttribute('y', String(24 - h)); rect.setAttribute('height', String(h)); }
+                    micMeterRAF = requestAnimationFrame(tick);
+                };
+                tick();
+            } catch(e) {}
+        }
         const micBtn = document.getElementById('mic-btn');
         const recTimer = document.getElementById('rec-timer');
         const micIcon = document.getElementById('mic-icon');
@@ -1471,6 +2203,7 @@
             if (!isRecording) {
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    startMicLevelMeter(stream, 'record');
                     mediaRecorder = new MediaRecorder(stream);
                     audioChunks = [];
 
@@ -1484,14 +2217,14 @@
                             const base64Audio = reader.result;
                             sendPayload(base64Audio, 'audio', 'Голосовое сообщение.webm', audioBlob.size);
                         };
+                        stopMicLevelMeter();
                         stream.getTracks().forEach(track => track.stop());
                     };
 
                     mediaRecorder.start();
                     isRecording = true;
-                    micBtn.classList.replace('bg-slate-800', 'bg-red-600');
+                    micBtn.classList.add('is-recording');
                     micBtn.classList.add('animate-pulse');
-                    micIcon.classList.add('hidden');
                     recTimer.classList.remove('hidden');
 
                     seconds = 0;
@@ -1509,10 +2242,10 @@
             } else {
                 mediaRecorder.stop();
                 isRecording = false;
-                micBtn.classList.replace('bg-red-600', 'bg-slate-800');
+                micBtn.classList.remove('is-recording');
                 micBtn.classList.remove('animate-pulse');
                 recTimer.classList.add('hidden');
-                micIcon.classList.remove('hidden');
+                stopMicLevelMeter();
                 clearInterval(recTimerInterval);
             }
         };
